@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+tmp*/
+
+# Local secrets
+.env
+.env.*
+!.env.example
+
+# Private business and research data
+.business/
+data/exports/
+data/db/
+data/reports/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/settings.local.json

@@ -1,0 +1,13 @@
+[project]
+name = "market-pain-miner"
+version = "0.1.0"
+description = "Local Telegram chat research tool for WB/Ozon product opportunities."
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+

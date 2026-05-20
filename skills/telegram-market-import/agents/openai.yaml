@@ -1,0 +1,4 @@
+interface:
+  display_name: "Telegram Market Import"
+  short_description: "Import Telegram chat exports safely for market research."
+  default_prompt: "Use this skill to import a Telegram result.json, preserve privacy, and verify the local database."

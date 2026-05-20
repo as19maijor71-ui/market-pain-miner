@@ -8,6 +8,7 @@ pytest-cache-files-*/
 .venv/
 venv/
 tmp*/
+tests/_tmp*/
 
 # Local secrets
 .env
@@ -19,6 +20,12 @@ tmp*/
 data/exports/
 data/db/
 data/reports/
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
 
 # OS / editors
 .DS_Store

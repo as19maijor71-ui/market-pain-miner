@@ -10,4 +10,5 @@ dev = ["pytest>=8.0"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-
+norecursedirs = ["tests/_tmp*", "_tmp*"]
+addopts = "-p no:cacheprovider"

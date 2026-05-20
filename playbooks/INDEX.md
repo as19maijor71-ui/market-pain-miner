@@ -11,8 +11,8 @@ Reusable Codex workflows for this project.
 | Create product opportunity card | [`03-product-opportunity-card.md`](./03-product-opportunity-card.md) |
 | Update from a new export | [`04-update-from-new-export.md`](./04-update-from-new-export.md) |
 | Extract ready solutions and competitors | [`05-competitor-scan.md`](./05-competitor-scan.md) |
+| Run first private pilot safely | [`06-pilot-runbook.md`](./06-pilot-runbook.md) |
 
 ## Rule
 
 Before inventing a new workflow, check this index. If the task repeats twice, add a playbook.
-

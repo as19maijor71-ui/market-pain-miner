@@ -1,6 +1,6 @@
 ---
 completed: false
-last_completed_step: 4
+last_completed_step: 5
 started_at: 2026-05-19
 project_type: commercial
 stack: python-local-first
@@ -61,18 +61,31 @@ Create a plan in `plans/` for the first working MVP:
 4. Pain and solution reports.
 5. Local dashboard or generated HTML report.
 
-## Step 5. First Data Import
+## Step 5. Skills And Prompts
+
+Use project-local skills and prompts:
+
+- `skills/codex-project-ops`
+- `skills/telegram-market-import`
+- `skills/wb-ozon-pain-mining`
+- `skills/product-opportunity-builder`
+- `prompts/INDEX.md`
+
+For automatic Codex discovery in another environment, copy or install the skill folders into `$CODEX_HOME/skills` or `~/.codex/skills`.
+
+## Step 6. First Data Import
 
 When a Telegram export is available:
 
 ```powershell
-python -m app.cli import "C:\path\to\result.json"
+$Export = "<local-result-json-path>"
+python -m app.cli import $Export
 python -m app.cli stats
 ```
 
 Save lessons in `retrospectives/`.
 
-## Step 6. Product Opportunity Loop
+## Step 7. Product Opportunity Loop
 
 For every strong pain cluster, create an opportunity card with:
 
@@ -87,11 +100,11 @@ For every strong pain cluster, create an opportunity card with:
 
 Use `playbooks/03-product-opportunity-card.md`.
 
-## Step 7. Completion
+## Step 8. Completion
 
 When the first import, first report, and first opportunity card exist, set:
 
 ```yaml
 completed: true
-last_completed_step: 7
+last_completed_step: 8
 ```

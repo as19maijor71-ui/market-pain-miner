@@ -1,0 +1,79 @@
+{
+  "id": -1003000000000,
+  "name": "Synthetic Solutions Fixture",
+  "type": "public_supergroup",
+  "messages": [
+    {
+      "id": 1,
+      "type": "message",
+      "date": "2026-05-19T11:00:00",
+      "from": "synthetic_participant_01",
+      "from_id": "synthetic_participant_01",
+      "text": "Не могу свести остатки WB и Ozon: в личном кабинете одно, в таблице другое, вручную уходит два часа."
+    },
+    {
+      "id": 2,
+      "type": "message",
+      "date": "2026-05-19T11:05:00",
+      "from": "synthetic_participant_02",
+      "from_id": "synthetic_participant_02",
+      "text": "Сверка остатков не работает: WB показывает 12, Ozon 8, таблица не сходится."
+    },
+    {
+      "id": 3,
+      "type": "message",
+      "date": "2026-05-19T11:10:00",
+      "from": "synthetic_participant_03",
+      "from_id": "synthetic_participant_03",
+      "text": "Сверка остатков вручную занимает полдня, каждый раз расхождение остатков после поставки."
+    },
+    {
+      "id": 4,
+      "type": "message",
+      "date": "2026-05-19T11:15:00",
+      "from": "synthetic_participant_04",
+      "from_id": "synthetic_participant_04",
+      "text": "Запустили наш сервис SellerStock для сверки остатков WB/Ozon для селлеров: https://sellerstock.test/demo. Демо по ссылке."
+    },
+    {
+      "id": 5,
+      "type": "message",
+      "date": "2026-05-19T11:20:00",
+      "from": "synthetic_participant_05",
+      "from_id": "synthetic_participant_05",
+      "text": "Кто пробовал бот @StockPilot для сверки остатков? Нужен без ручных таблиц."
+    },
+    {
+      "id": 6,
+      "type": "message",
+      "date": "2026-05-19T11:25:00",
+      "from": "synthetic_participant_06",
+      "from_id": "synthetic_participant_06",
+      "text": "Рекомендую бот @StockPilot, пользуемся для сверки остатков, менеджерам экономит час в день."
+    },
+    {
+      "id": 7,
+      "type": "message",
+      "date": "2026-05-19T11:30:00",
+      "from": "synthetic_participant_07",
+      "from_id": "synthetic_participant_07",
+      "text": "Промокод PARTNER20 на сервис отчетов MegaSeller https://megaseller.test/ref?x=1, скидка только сегодня, пишите в лс!"
+    },
+    {
+      "id": 8,
+      "type": "message",
+      "date": "2026-05-19T11:35:00",
+      "from": "synthetic_participant_08",
+      "from_id": "synthetic_participant_08",
+      "text": "Сколько стоит @StockPilot после теста? Видел подписка 2500 руб/мес."
+    },
+    {
+      "id": 9,
+      "type": "message",
+      "date": "2026-05-19T11:40:00",
+      "from": "synthetic_participant_09",
+      "from_id": "synthetic_participant_09",
+      "text": "У MegaSeller отчеты по ДРР часто ломаются, после обновления ищем альтернативу."
+    }
+  ]
+}

@@ -48,6 +48,73 @@ class TelegramImporterTests(unittest.TestCase):
         self.assertEqual(result.chat.total_messages, 1)
         self.assertEqual(result.messages[0].text, "Как считать маржу")
 
+    def test_rejects_invalid_json(self) -> None:
+        path = Path.cwd() / "tests" / "_tmp_invalid_result.json"
+        try:
+            path.write_text("{not json", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "not valid JSON") as error:
+                load_telegram_export(path)
+            self.assertNotIn(str(path), str(error.exception))
+        finally:
+            if path.exists():
+                path.unlink()
+
+    def test_missing_export_error_does_not_leak_path(self) -> None:
+        path = Path.cwd() / "tests" / "_tmp_missing_private_result.json"
+
+        with self.assertRaisesRegex(ValueError, "does not exist") as error:
+            load_telegram_export(path)
+
+        self.assertNotIn(str(path), str(error.exception))
+
+    def test_rejects_non_list_messages(self) -> None:
+        path = Path.cwd() / "tests" / "_tmp_invalid_result.json"
+        payload = {
+            "id": -1003787023644,
+            "name": "WB test chat",
+            "type": "public_supergroup",
+            "messages": {"id": 1},
+        }
+        try:
+            path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "'messages' must be a list"):
+                load_telegram_export(path)
+        finally:
+            if path.exists():
+                path.unlink()
+
+    def test_rejects_invalid_message_items(self) -> None:
+        path = Path.cwd() / "tests" / "_tmp_invalid_result.json"
+        payload = {
+            "id": -1003787023644,
+            "name": "WB test chat",
+            "type": "public_supergroup",
+            "messages": ["not an object"],
+        }
+        try:
+            path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "must be an object"):
+                load_telegram_export(path)
+        finally:
+            if path.exists():
+                path.unlink()
+
+    def test_rejects_content_message_without_id(self) -> None:
+        path = Path.cwd() / "tests" / "_tmp_invalid_result.json"
+        payload = {
+            "id": -1003787023644,
+            "name": "WB test chat",
+            "type": "public_supergroup",
+            "messages": [{"type": "message", "text": "Привет"}],
+        }
+        try:
+            path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "missing 'id'"):
+                load_telegram_export(path)
+        finally:
+            if path.exists():
+                path.unlink()
+
 
 if __name__ == "__main__":
     unittest.main()

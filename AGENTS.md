@@ -19,6 +19,8 @@ Read only the context needed for the task.
 | Pricing and economics | `.business/economics/` |
 | Lead generation and positioning | `.business/marketing/` |
 | Research rules and privacy | `.business/research/` |
+| Project-local skills | `skills/` |
+| Copyable prompts | `prompts/INDEX.md` |
 | Implementation plans | `plans/` |
 | Session memory | `retrospectives/` |
 | Reusable workflows | `playbooks/INDEX.md` |
@@ -26,10 +28,22 @@ Read only the context needed for the task.
 ## Workflow
 
 1. Before business or product decisions, read `.business/INDEX.md` and the specific file that matches the task.
-2. Before implementing a non-trivial feature, create or update a plan in `plans/YYYY-MM-DD-name.md`.
-3. Keep code changes scoped. Do not refactor unrelated modules.
-4. After a meaningful work session, add a short retrospective in `retrospectives/`.
-5. For repeatable work, add a playbook instead of relying on memory.
+2. Before repeatable work, check `skills/`, `prompts/INDEX.md`, and `playbooks/INDEX.md`.
+3. Before implementing a non-trivial feature, create or update a plan in `plans/YYYY-MM-DD-name.md`.
+4. Keep code changes scoped. Do not refactor unrelated modules.
+5. After a meaningful work session, add a short retrospective in `retrospectives/`.
+6. For repeatable work, add or update a project-local skill, prompt, or playbook instead of relying on memory.
+
+## Project-Local Skills
+
+The repository contains local skill packages in `skills/`. They are versioned project assets, not automatically installed global Codex skills.
+
+- `skills/codex-project-ops`
+- `skills/telegram-market-import`
+- `skills/wb-ozon-pain-mining`
+- `skills/product-opportunity-builder`
+
+Use them by reading the relevant `SKILL.md` when the task matches. If automatic skill discovery is needed in a future session, copy or install these folders into `$CODEX_HOME/skills` or `~/.codex/skills`.
 
 ## Data Rules
 
@@ -88,4 +102,3 @@ Default marketplace themes:
 ## Language
 
 Respond to the user in Russian unless they ask otherwise. Keep implementation notes concise and practical.
-

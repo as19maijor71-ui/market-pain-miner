@@ -18,8 +18,7 @@ Extract ready solutions from Telegram chats and turn them into competitor intell
 
 - name
 - type
-- link
-- author
+- locator alias (`url1`, `handle1`, or `none` in tracked/public notes)
 - target user
 - promise
 - features
@@ -27,9 +26,13 @@ Extract ready solutions from Telegram chats and turn them into competitor intell
 - source message IDs
 - visible weakness
 
+Keep raw links, Telegram handles, and authors local-only. Do not copy them into
+tracked plans, retrospectives, README, issues, PRs, public reports, or chat
+messages. If a raw locator is needed for debugging, use the private local DB or
+rerun a raw-local command and summarize with aliases afterward.
+
 ## Output
 
 Competitor entry plus possible opportunity:
 
 > What can we build simpler, narrower, faster, or more adapted to WB/Ozon managers?
-

@@ -12,7 +12,8 @@ Import Telegram Desktop `result.json` into the local SQLite database.
 ## Command
 
 ```powershell
-python -m app.cli import "C:\path\to\result.json"
+$Export = "<local-result-json-path>"
+python -m app.cli import $Export
 python -m app.cli stats
 ```
 
@@ -29,4 +30,3 @@ python -m app.cli stats
 - SQLite database in `data/db/chatkb.sqlite`.
 - Import summary in terminal.
 - Follow-up plan or retrospective if this is a real research session.
-

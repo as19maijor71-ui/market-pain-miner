@@ -1,0 +1,4 @@
+interface:
+  display_name: "Product Opportunity Builder"
+  short_description: "Turn pain clusters into scored MVP opportunity cards."
+  default_prompt: "Use this skill to convert a validated pain cluster into a scored product opportunity and first MVP plan."

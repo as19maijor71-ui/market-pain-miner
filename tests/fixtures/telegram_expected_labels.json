@@ -1,0 +1,46 @@
+{
+  "name": "synthetic_telegram_fixture_control_v1",
+  "source_fixture": "tests/fixtures/telegram_result.json",
+  "labels": [
+    {
+      "chat_id": "1000000000",
+      "msg_id": 1,
+      "category": "pain"
+    },
+    {
+      "chat_id": "1000000000",
+      "msg_id": 2,
+      "category": "question"
+    },
+    {
+      "chat_id": "1000000000",
+      "msg_id": 3,
+      "category": "solution_ad"
+    },
+    {
+      "chat_id": "1000000000",
+      "msg_id": 4,
+      "category": "tool_mention"
+    },
+    {
+      "chat_id": "1000000000",
+      "msg_id": 5,
+      "category": "pain"
+    },
+    {
+      "chat_id": "1000000000",
+      "msg_id": 6,
+      "category": "question"
+    },
+    {
+      "chat_id": "1000000000",
+      "msg_id": 7,
+      "category": "offtopic"
+    },
+    {
+      "chat_id": "1000000000",
+      "msg_id": 8,
+      "category": "offtopic"
+    }
+  ]
+}

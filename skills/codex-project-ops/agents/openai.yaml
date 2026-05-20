@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Project Ops"
+  short_description: "Maintain project context, plans, and retrospectives."
+  default_prompt: "Use this skill when working on this project: read the relevant context, update plans, and leave a concise retrospective."

@@ -1,0 +1,81 @@
+{
+  "id": -1001000000000,
+  "name": "Synthetic Market Research Fixture",
+  "type": "public_supergroup",
+  "messages": [
+    {
+      "id": 1,
+      "type": "message",
+      "date": "2026-05-19T09:00:00",
+      "from": "synthetic_participant_01",
+      "from_id": "synthetic_participant_01",
+      "text": "Не могу свести остатки WB и Ozon: в личном кабинете одно, в таблице другое, вручную уходит два часа."
+    },
+    {
+      "id": 2,
+      "type": "message",
+      "date": "2026-05-19T09:05:00",
+      "from": "synthetic_participant_02",
+      "from_id": "synthetic_participant_02",
+      "text": [
+        "Как посчитать ",
+        {
+          "type": "bold",
+          "text": "маржу"
+        },
+        " после скидок и логистики?"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "message",
+      "date": "2026-05-19T09:10:00",
+      "from": "synthetic_participant_03",
+      "from_id": "synthetic_participant_03",
+      "text": "Запустили наш сервис для отчетов по ДРР: демо на https://example.test/demo, подписка помесячно."
+    },
+    {
+      "id": 4,
+      "type": "message",
+      "date": "2026-05-19T09:15:00",
+      "from": "synthetic_participant_04",
+      "from_id": "synthetic_participant_04",
+      "text": "Кто пробовал сервис https://example.test/tool для сверки остатков?"
+    },
+    {
+      "id": 5,
+      "type": "message",
+      "date": "2026-05-19T09:20:00",
+      "from": "synthetic_participant_05",
+      "from_id": "synthetic_participant_05",
+      "text": "Не могу свести остатки WB и Ozon: в личном кабинете одно, в таблице другое, вручную уходит два часа."
+    },
+    {
+      "id": 6,
+      "type": "message",
+      "date": "2026-05-19T09:25:00",
+      "from": "synthetic_participant_06",
+      "from_id": "synthetic_participant_06",
+      "forwarded_from": "Synthetic Public Source",
+      "text": "Подскажите, где смотреть остатки по складам, если часть поставки зависла?"
+    },
+    {
+      "id": 7,
+      "type": "message",
+      "date": "2026-05-19T09:30:00",
+      "from": "synthetic_participant_07",
+      "from_id": "synthetic_participant_07",
+      "text": ""
+    },
+    {
+      "id": 8,
+      "type": "message",
+      "date": "2026-05-19T09:35:00",
+      "from": "synthetic_participant_08",
+      "from_id": "synthetic_participant_08",
+      "photo": "(synthetic media placeholder)",
+      "media_type": "photo",
+      "text": ""
+    }
+  ]
+}

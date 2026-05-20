@@ -1,0 +1,5 @@
+interface:
+  display_name: "WB/Ozon Pain Mining"
+  short_description: "Classify seller pains and solution signals."
+  default_prompt: "Use this skill to analyze WB/Ozon Telegram chat messages and extract evidence-backed pain clusters and product opportunities."
+

@@ -1,28 +1,25 @@
-# Prompt: Competitor Scan
+# Prompt: Поиск Конкурентов
 
-Use `playbooks/05-competitor-scan.md` and the project-local skill `skills/wb-ozon-pain-mining`.
+Найди готовые решения и competitor signals вокруг выбранной боли.
 
-Find ready solutions mentioned in the imported chats:
+Источники:
 
-- bots
-- sites
-- dashboards
-- spreadsheets
-- browser extensions
-- services
-- courses or consulting offers
+- Telegram-сообщения из анализа;
+- публичные сайты;
+- dashboards;
+- bots;
+- таблицы;
+- курсы и consulting.
 
-For each solution, capture:
+Фиксируй:
 
-- name
-- type
-- local-only raw link or handle if present; in tracked/public notes use only aliases like `url1` or `handle1`
-- target user
-- promise
-- features
-- pricing if present
-- source message IDs
-- visible weakness
-- product opportunity for us
+- название;
+- тип;
+- обещание;
+- цена, если видна;
+- целевая аудитория;
+- что закрывает;
+- что не закрывает;
+- source/evidence.
 
-Do not store authors, Telegram handles, raw URLs, participant names, user IDs, private chat names, or raw quotes in tracked/public notes. Keep raw locators only in local private working data.
+Приватные URL и handles из чатов заменяй aliases.

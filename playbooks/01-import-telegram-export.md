@@ -1,32 +1,28 @@
-# Playbook: Import Telegram Export
+# Playbook: Импорт Telegram Export
 
-## Goal
+## Цель
 
-Import Telegram Desktop `result.json` into the local SQLite database.
+Безопасно импортировать Telegram Desktop `result.json` в локальную SQLite-базу.
 
-## Input
+## Шаги
 
-- Path to `result.json`.
-- Optional database path.
-
-## Command
+1. Положить export в `data/exports/<run-id>/result.json`.
+2. Создать отдельную базу в `data/db/<run-id>.sqlite`.
+3. Запустить import.
+4. Запустить classify.
+5. Сначала смотреть `summary` или `report`, а не raw output.
 
 ```powershell
-$Export = "<local-result-json-path>"
-python -m app.cli import $Export
-python -m app.cli stats
+$Export = "data/exports/pilot-001/result.json"
+$Db = "data/db/pilot-001.sqlite"
+
+python -m app.cli --db $Db import $Export
+python -m app.cli --db $Db classify
+python -m app.cli --db $Db summary --limit 10
+python -m app.cli --db $Db site --output-dir data/reports/pilot-001-site --limit 20
 ```
 
-## Checks
+## Приватность
 
-- Messages count is greater than zero.
-- Chat name and chat id are detected.
-- Text entities are flattened.
-- Photo/file flags are preserved.
-- No raw export is copied into git-tracked files.
-
-## Output
-
-- SQLite database in `data/db/chatkb.sqlite`.
-- Import summary in terminal.
-- Follow-up plan or retrospective if this is a real research session.
+Не копировать raw messages, имена, handles, user IDs, private quotes и URL в
+tracked-файлы.

@@ -1,29 +1,25 @@
-# Plan: [Name]
+# План: [Название]
 
-Date: YYYY-MM-DD
+Дата: YYYY-MM-DD
 
-## Goal
+## Цель
 
-What should be true when this work is done?
+Что нужно получить.
 
-## Context
+## Контекст
 
-Relevant files, business assumptions, and constraints.
+Что уже известно, какие ограничения и privacy rules важны.
 
-## Phases
+## Фазы
 
-- [ ] Phase 1:
-- [ ] Phase 2:
-- [ ] Phase 3:
+- [ ] Фаза 1:
+- [ ] Фаза 2:
+- [ ] Фаза 3:
 
-## Verification
+## Проверка
 
-- [ ] Command/test:
-- [ ] Manual check:
+- [ ] Команда или ручная проверка:
 
-## Result
+## Результат
 
-Done / partially done / not done.
-
-What remains:
-
+WIP / Done / Blocked.

@@ -6,64 +6,74 @@ project_type: commercial
 stack: python-local-first
 ---
 
-# CODEX_AUTOPILOT - onboarding for this project
+# Автопилот Codex
 
-This file is a lightweight Codex version of the Claude starter autopilot. It is not a command script. It is a step-by-step project setup protocol.
+Это короткий протокол запуска и продолжения работы над проектом. Это не
+командный скрипт, а порядок действий для Codex и владельца проекта.
 
-## Rule
+## Правило
 
-If `completed: false`, continue from `last_completed_step`. After each completed step, update the frontmatter.
+Если `completed: false`, продолжаем с `last_completed_step`. После каждого
+закрытого шага обновляем frontmatter.
 
-## Step 1. Project Calibration
+## Шаг 1. Калибровка Проекта
 
-Current working definition:
+Рабочее определение:
 
-> Local market research system that imports Telegram chats about WB/Ozon, finds repeated seller and manager pains, extracts ready solutions and competitor ads, and turns them into product opportunities for small paid apps and bots.
+> Локальная исследовательская система, которая импортирует Telegram-чаты про
+> WB/Ozon, находит повторяющиеся боли продавцов и менеджеров, достает готовые
+> решения и рекламу конкурентов, а затем превращает это в понятные продуктовые
+> гипотезы для маленьких платных приложений, ботов и внутренних инструментов.
 
-Clarify and write into `.business/company/about.md`:
+Главный видимый результат: локальный сайт-выжимка, который можно открыть в
+браузере и быстро понять, что найдено в чате.
 
-- project name
-- one-line promise
-- solo or team
-- decision principles
+Записать в `.business/company/about.md`:
 
-## Step 2. Audience
+- название проекта;
+- обещание в одну строку;
+- solo/team формат;
+- принципы принятия решений.
 
-Fill `.business/audience/`:
+## Шаг 2. Аудитория
 
-- primary buyer
-- secondary buyer
-- first narrow segment for MVP
-- top objections
-- buying journey
+Заполнить `.business/audience/`:
 
-Recommended first segment:
+- основной покупатель;
+- вторичный покупатель;
+- первый узкий сегмент для MVP;
+- главные возражения;
+- путь покупки.
 
-> Marketplace managers and small WB/Ozon sellers who already feel operational pain and are willing to pay for automation that saves daily manual work.
+Рекомендуемый первый сегмент:
 
-## Step 3. Marketplace Taxonomy
+> Marketplace-менеджеры и небольшие WB/Ozon-продавцы, у которых уже есть
+> операционная боль и готовность платить за автоматизацию ежедневной ручной
+> работы.
 
-Fill `.business/marketplaces/`:
+## Шаг 3. Таксономия Маркетплейсов
 
-- WB-specific pains
-- Ozon-specific pains
-- shared seller vocabulary
-- pain taxonomy
-- ready solution taxonomy
+Заполнить `.business/marketplaces/`:
 
-## Step 4. MVP Plan
+- боли WB;
+- боли Ozon;
+- общий словарь продавцов;
+- таксономия болей;
+- таксономия готовых решений.
 
-Create a plan in `plans/` for the first working MVP:
+## Шаг 4. План MVP
 
-1. Telegram JSON import.
-2. SQLite storage.
-3. Rule-based first classification.
-4. Pain and solution reports.
-5. Local dashboard or generated HTML report.
+Создать план в `plans/` для первого рабочего MVP:
 
-## Step 5. Skills And Prompts
+1. Импорт Telegram JSON.
+2. Хранение в SQLite.
+3. Первая rule-based классификация.
+4. Отчеты по болям и решениям.
+5. Локальный multi-page сайт как основной результат пилота.
 
-Use project-local skills and prompts:
+## Шаг 5. Навыки И Промпты
+
+Использовать локальные навыки и промпты:
 
 - `skills/codex-project-ops`
 - `skills/telegram-market-import`
@@ -71,38 +81,41 @@ Use project-local skills and prompts:
 - `skills/product-opportunity-builder`
 - `prompts/INDEX.md`
 
-For automatic Codex discovery in another environment, copy or install the skill folders into `$CODEX_HOME/skills` or `~/.codex/skills`.
+Для автоматического обнаружения Codex в другой среде можно скопировать или
+установить папки навыков в `$CODEX_HOME/skills` или `~/.codex/skills`.
 
-## Step 6. First Data Import
+## Шаг 6. Первый Импорт Данных
 
-When a Telegram export is available:
+Когда Telegram export доступен:
 
 ```powershell
 $Export = "<local-result-json-path>"
-python -m app.cli import $Export
-python -m app.cli stats
+$Db = "data/db/pilot-001.sqlite"
+python -m app.cli --db $Db import $Export
+python -m app.cli --db $Db classify
+python -m app.cli --db $Db site --output-dir data/reports/pilot-001-site
 ```
 
-Save lessons in `retrospectives/`.
+Уроки сохранять в `retrospectives/`.
 
-## Step 7. Product Opportunity Loop
+## Шаг 7. Цикл Продуктовых Гипотез
 
-For every strong pain cluster, create an opportunity card with:
+Для каждого сильного кластера боли создать opportunity card:
 
-- problem
-- segment
-- evidence
-- current workaround
-- possible MVP
-- monetization
-- risks
-- score
+- проблема;
+- сегмент;
+- доказательства;
+- текущий workaround;
+- возможный MVP;
+- монетизация;
+- риски;
+- score.
 
-Use `playbooks/03-product-opportunity-card.md`.
+Использовать `playbooks/03-product-opportunity-card.md`.
 
-## Step 8. Completion
+## Шаг 8. Завершение
 
-When the first import, first report, and first opportunity card exist, set:
+Когда существуют первый импорт, первый локальный сайт и первая opportunity card:
 
 ```yaml
 completed: true

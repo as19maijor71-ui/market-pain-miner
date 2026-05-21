@@ -1,24 +1,23 @@
-# Retrospective: [Name]
+# Ретроспектива: [Название]
 
-Date/time: YYYY-MM-DD HH:MM
+Дата/время: YYYY-MM-DD HH:MM
 
-## Task
+## Задача
 
-What did we try to do?
+Что делали.
 
-## What Changed
+## Что Изменилось
 
-Files, decisions, or outputs.
+Коротко по файлам/результатам.
 
-## Result
+## Результат
 
-Done / partially done / not done.
+Done / Blocked / WIP.
 
-## What We Learned
+## Что Узнали
 
-Useful product, technical, or process notes.
+Главный вывод.
 
-## Next Step
+## Следующий Шаг
 
-One practical next action.
-
+Что делать дальше.

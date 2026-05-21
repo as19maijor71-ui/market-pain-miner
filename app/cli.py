@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import re
+from contextlib import redirect_stdout
 from dataclasses import dataclass, replace
+from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
@@ -24,13 +27,30 @@ from app.opportunities import (
 )
 from app.solutions import build_solution_report
 from app.storage.sqlite import Database
+from app.web import render_html_report, write_static_site
 
 
 DEFAULT_DB = Path("data/db/chatkb.sqlite")
 DEFAULT_EXPECTED_LABELS = Path("tests/fixtures/telegram_expected_labels.json")
+DEFAULT_REPORT = Path("data/reports/research-report.html")
+DEFAULT_SITE_DIR = Path("data/reports/research-site")
+DEFAULT_PROJECT_NAME = "Market Pain Miner"
+DEFAULT_PROJECT_SUMMARY = (
+    "Локальная база знаний из Telegram-чата: боли, решения, инсайты "
+    "и гипотезы для следующего продукта."
+)
 KEY_EVALUATION_CATEGORIES = ("pain", "question", "solution_ad", "tool_mention")
 KEY_FREQUENCY_CATEGORIES = ("pain", "question", "solution_ad", "tool_mention")
 PRIVATE_DB_SUFFIXES = {".db", ".sqlite", ".sqlite3"}
+PROJECT_PROFILE_LIST_FIELDS = (
+    "target_segments",
+    "focus_themes",
+    "avoid_themes",
+    "offer_types",
+    "decision_criteria",
+    "design_preferences",
+    "next_questions",
+)
 MAX_LATEST = 100
 CONTROL_CHARS_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]")
 MANUAL_CLASSIFIER_NAME = "manual_review"
@@ -244,6 +264,90 @@ def main() -> None:
         ),
     )
 
+    report_parser = subparsers.add_parser(
+        "report",
+        help="Generate a privacy-safe static HTML report",
+    )
+    report_parser.add_argument(
+        "--output",
+        default=str(DEFAULT_REPORT),
+        help=f"Path to HTML report, default: {DEFAULT_REPORT}",
+    )
+    report_parser.add_argument(
+        "--limit",
+        type=int,
+        default=10,
+        help=f"Max items per report section, 1-{MAX_OPPORTUNITY_CARDS}; default: 10",
+    )
+    report_parser.add_argument(
+        "--confidence-threshold",
+        type=float,
+        default=REVIEW_CONFIDENCE_THRESHOLD,
+        help=(
+            "Labels at or below this confidence are counted as review candidates; "
+            f"default: {REVIEW_CONFIDENCE_THRESHOLD}"
+        ),
+    )
+    report_parser.add_argument(
+        "--allow-external-report",
+        action="store_true",
+        help=(
+            "Unsafe local-only: allow writing a generated report outside "
+            "data/reports or tests/_tmp*.html"
+        ),
+    )
+
+    site_parser = subparsers.add_parser(
+        "site",
+        help="Generate a privacy-safe multi-page local static site",
+    )
+    site_parser.add_argument(
+        "--output-dir",
+        default=str(DEFAULT_SITE_DIR),
+        help=f"Path to generated site folder, default: {DEFAULT_SITE_DIR}",
+    )
+    site_parser.add_argument(
+        "--limit",
+        type=int,
+        default=20,
+        help=f"Max items per site section, 1-{MAX_OPPORTUNITY_CARDS}; default: 20",
+    )
+    site_parser.add_argument(
+        "--confidence-threshold",
+        type=float,
+        default=REVIEW_CONFIDENCE_THRESHOLD,
+        help=(
+            "Labels at or below this confidence are counted as review candidates; "
+            f"default: {REVIEW_CONFIDENCE_THRESHOLD}"
+        ),
+    )
+    site_parser.add_argument(
+        "--project-name",
+        default=DEFAULT_PROJECT_NAME,
+        help="Project name shown in the generated site",
+    )
+    site_parser.add_argument(
+        "--project-summary",
+        default=DEFAULT_PROJECT_SUMMARY,
+        help="Short project description shown in the generated site",
+    )
+    site_parser.add_argument(
+        "--project-profile",
+        default=None,
+        help=(
+            "Optional local JSON file with target_segments, focus_themes, "
+            "offer_types and decision_criteria for a more personal for-you page"
+        ),
+    )
+    site_parser.add_argument(
+        "--allow-external-site",
+        action="store_true",
+        help=(
+            "Unsafe local-only: allow writing a generated site outside "
+            "data/reports or tests/_tmp*"
+        ),
+    )
+
     stats_parser = subparsers.add_parser("stats", help="Show database stats")
     stats_parser.add_argument(
         "--latest",
@@ -341,6 +445,29 @@ def main() -> None:
                 limit=args.limit,
                 confidence_threshold=args.confidence_threshold,
                 allow_external_db=args.allow_external_db,
+            )
+        elif args.command == "report":
+            run_report(
+                Path(args.db),
+                Path(args.output),
+                limit=args.limit,
+                confidence_threshold=args.confidence_threshold,
+                allow_external_db=args.allow_external_db,
+                allow_external_report=args.allow_external_report,
+            )
+        elif args.command == "site":
+            run_site(
+                Path(args.db),
+                Path(args.output_dir),
+                limit=args.limit,
+                confidence_threshold=args.confidence_threshold,
+                project_name=args.project_name,
+                project_summary=args.project_summary,
+                project_profile_path=(
+                    Path(args.project_profile) if args.project_profile else None
+                ),
+                allow_external_db=args.allow_external_db,
+                allow_external_site=args.allow_external_site,
             )
         elif args.command == "stats":
             run_stats(
@@ -1312,6 +1439,790 @@ def run_summary(
     }
 
 
+def load_project_profile(profile_path: Path | None) -> dict[str, object]:
+    if profile_path is None:
+        return {}
+    if not profile_path.exists():
+        raise ValueError(f"Project profile not found: {profile_path}")
+    if profile_path.suffix.lower() != ".json":
+        raise ValueError("Project profile must be a JSON file")
+
+    try:
+        payload = json.loads(profile_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Project profile JSON is invalid: {exc.msg}") from exc
+
+    if not isinstance(payload, dict):
+        raise ValueError("Project profile must contain a JSON object")
+
+    profile: dict[str, object] = {}
+    for key in ("project_name", "name", "project_summary", "summary", "user"):
+        if key in payload:
+            profile[key] = terminal_safe(payload[key])
+
+    for key in PROJECT_PROFILE_LIST_FIELDS:
+        profile[key] = _profile_text_list(payload.get(key))
+
+    return profile
+
+
+def _profile_text_list(value: object) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        values = [value]
+    elif isinstance(value, list):
+        values = value
+    else:
+        raise ValueError("Project profile list fields must be strings or arrays")
+
+    result = []
+    seen = set()
+    for item in values:
+        text = terminal_safe(item).strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        result.append(text[:160])
+    return result[:20]
+
+
+def _project_profile_text(
+    profile: dict[str, object],
+    keys: tuple[str, ...],
+    *,
+    fallback: str,
+    cli_default: str,
+) -> str:
+    if fallback != cli_default:
+        return fallback
+    for key in keys:
+        value = str(profile.get(key, "")).strip()
+        if value:
+            return value
+    return fallback
+
+
+def run_report(
+    db_path: Path,
+    output_path: Path = DEFAULT_REPORT,
+    *,
+    limit: int = 10,
+    confidence_threshold: float = REVIEW_CONFIDENCE_THRESHOLD,
+    allow_external_db: bool = False,
+    allow_external_report: bool = False,
+) -> dict[str, object]:
+    validate_report_path(output_path, allow_external_report=allow_external_report)
+    captured = io.StringIO()
+    with redirect_stdout(captured):
+        payload = run_summary(
+            db_path,
+            limit=limit,
+            confidence_threshold=confidence_threshold,
+            allow_external_db=allow_external_db,
+        )
+
+    html = render_html_report(payload)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(html, encoding="utf-8")
+
+    print("HTML report generated")
+    print(f"- path={terminal_safe(output_path)}")
+    print(f"- messages={payload['counts']['messages']}")
+    print(f"- opportunities={len(payload['opportunities'])}")
+    print(f"- quality_gaps={len(payload['quality_gaps'])}")
+    return {
+        "path": terminal_safe(output_path),
+        "payload": payload,
+    }
+
+
+def run_site(
+    db_path: Path,
+    output_dir: Path = DEFAULT_SITE_DIR,
+    *,
+    limit: int = 20,
+    confidence_threshold: float = REVIEW_CONFIDENCE_THRESHOLD,
+    project_name: str = DEFAULT_PROJECT_NAME,
+    project_summary: str = DEFAULT_PROJECT_SUMMARY,
+    project_profile_path: Path | None = None,
+    allow_external_db: bool = False,
+    allow_external_site: bool = False,
+) -> dict[str, object]:
+    validate_site_dir_path(output_dir, allow_external_site=allow_external_site)
+    project_profile = load_project_profile(project_profile_path)
+    payload = build_site_payload(
+        db_path,
+        limit=limit,
+        confidence_threshold=confidence_threshold,
+        project_name=project_name,
+        project_summary=project_summary,
+        project_profile=project_profile,
+        allow_external_db=allow_external_db,
+    )
+    write_static_site(payload, output_dir)
+
+    print("Static site generated")
+    print(f"- path={terminal_safe(output_dir)}")
+    print(f"- open=index.html")
+    print(f"- messages={payload['summary']['counts']['messages']}")
+    print(f"- participants={len(payload['participants'])}")
+    print(f"- tools={len(payload['tools'])}")
+    print(f"- insights={len(payload['insights'])}")
+    print(f"- niches={len(payload['niches'])}")
+    if project_profile_path:
+        print(f"- project_profile={terminal_safe(project_profile_path)}")
+    print(
+        "- serve="
+        f"python -m http.server 8765 -d {terminal_safe(output_dir)}"
+    )
+    return {
+        "path": terminal_safe(output_dir),
+        "payload": payload,
+    }
+
+
+def build_site_payload(
+    db_path: Path,
+    *,
+    limit: int,
+    confidence_threshold: float,
+    project_name: str,
+    project_summary: str,
+    project_profile: dict[str, object] | None = None,
+    allow_external_db: bool = False,
+) -> dict[str, object]:
+    if limit <= 0:
+        raise ValueError("--limit must be greater than 0")
+    if limit > MAX_OPPORTUNITY_CARDS:
+        raise ValueError(f"--limit must be <= {MAX_OPPORTUNITY_CARDS}")
+
+    captured = io.StringIO()
+    with redirect_stdout(captured):
+        summary = run_summary(
+            db_path,
+            limit=limit,
+            confidence_threshold=confidence_threshold,
+            allow_external_db=allow_external_db,
+        )
+
+    validate_private_db_path(db_path, allow_external_db=allow_external_db)
+    db = Database(db_path)
+    try:
+        chat_aliases = db.chat_aliases()
+        chat_meta = _site_chat_meta(db, chat_aliases)
+        participants = _site_participants(db, chat_aliases, limit=limit)
+        insights = _site_insights(db, chat_aliases, limit=limit)
+        niches = _site_niches(db, chat_aliases, limit=limit)
+    finally:
+        db.close()
+
+    project_profile = project_profile or {}
+    project_name = _project_profile_text(
+        project_profile,
+        ("project_name", "name"),
+        fallback=project_name,
+        cli_default=DEFAULT_PROJECT_NAME,
+    )
+    project_summary = _project_profile_text(
+        project_profile,
+        ("project_summary", "summary"),
+        fallback=project_summary,
+        cli_default=DEFAULT_PROJECT_SUMMARY,
+    )
+
+    tools = _site_tools(summary)
+    for_you = _site_for_you(
+        project_name=project_name,
+        project_summary=project_summary,
+        project_profile=project_profile,
+        summary=summary,
+        participants=participants,
+        niches=niches,
+    )
+
+    return {
+        "project": {
+            "name": terminal_safe(project_name),
+            "summary": terminal_safe(project_summary),
+            "profile": project_profile,
+        },
+        "summary": summary,
+        "participants": participants,
+        "tools": tools,
+        "insights": insights,
+        "niches": niches,
+        "for_you": for_you,
+        "chat_meta": chat_meta,
+    }
+
+
+def _site_chat_meta(db: Database, chat_aliases: dict[str, str]) -> dict[str, object]:
+    chat_rows = list(
+        db.conn.execute(
+            """
+            SELECT chat_id, type, total_messages
+            FROM chats
+            ORDER BY chat_id ASC
+            """
+        )
+    )
+    msg_row = db.conn.execute(
+        """
+        SELECT
+            COUNT(*) AS total_messages,
+            MIN(msg_id) AS first_msg_id,
+            MAX(msg_id) AS last_msg_id,
+            MAX(date) AS last_date_iso
+        FROM messages
+        """
+    ).fetchone()
+    last_date, last_time = _format_site_datetime(
+        str(msg_row["last_date_iso"] or "")
+    )
+    return {
+        "chats": [
+            {
+                "chat_alias": terminal_safe(chat_aliases.get(str(row["chat_id"]), "chat?")),
+                "type": terminal_safe(row["type"]),
+                "declared_total_messages": int(row["total_messages"]),
+            }
+            for row in chat_rows
+        ],
+        "total_messages": int(msg_row["total_messages"] or 0),
+        "first_msg_id": int(msg_row["first_msg_id"] or 0),
+        "last_msg_id": int(msg_row["last_msg_id"] or 0),
+        "last_date_iso": terminal_safe(msg_row["last_date_iso"] or ""),
+        "last_date": last_date,
+        "last_time": last_time,
+        "privacy_mode": "aliases_only",
+    }
+
+
+def _site_participants(
+    db: Database,
+    chat_aliases: dict[str, str],
+    *,
+    limit: int,
+) -> list[dict[str, object]]:
+    rows = list(
+        db.conn.execute(
+            db.EFFECTIVE_LABELS_CTE
+            + """
+            SELECT
+                m.from_id,
+                COUNT(*) AS message_count,
+                MIN(m.date) AS first_date,
+                MAX(m.date) AS last_date,
+                MIN(m.msg_id) AS first_msg_id,
+                m.chat_id AS sample_chat_id,
+                GROUP_CONCAT(DISTINCT COALESCE(el.category, 'unclassified'))
+                    AS categories,
+                GROUP_CONCAT(DISTINCT COALESCE(el.topics, ''))
+                    AS topic_groups
+            FROM messages AS m
+            LEFT JOIN effective_labels AS el
+              ON el.chat_id = m.chat_id
+             AND el.msg_id = m.msg_id
+            GROUP BY m.from_id
+            ORDER BY message_count DESC, first_date ASC
+            LIMIT ?
+            """,
+            (limit,),
+        )
+    )
+    participants = []
+    for index, row in enumerate(rows, start=1):
+        categories = _csv_values_from_db(row["categories"])
+        topics = _topic_values_from_db(row["topic_groups"])
+        message_id = _message_ref_display(
+            str(row["sample_chat_id"]),
+            int(row["first_msg_id"]),
+            chat_aliases,
+            raw_local=False,
+        )
+        participants.append(
+            {
+                "id": f"person{index}",
+                "name": f"participant{index}",
+                "summary": (
+                    "Активный участник выборки. Реальное имя скрыто "
+                    "privacy-safe режимом."
+                ),
+                "message_count": int(row["message_count"]),
+                "top_categories": ",".join(categories) if categories else "none",
+                "topics": "|".join(topics) if topics else "none",
+                "first_seen": terminal_safe(row["first_date"] or ""),
+                "last_seen": terminal_safe(row["last_date"] or ""),
+                "sample_message_id": terminal_safe(message_id),
+            }
+        )
+    return participants
+
+
+def _site_insights(
+    db: Database,
+    chat_aliases: dict[str, str],
+    *,
+    limit: int,
+) -> list[dict[str, object]]:
+    rows = list(
+        db.conn.execute(
+            db.EFFECTIVE_LABELS_CTE
+            + """
+            SELECT
+                m.chat_id,
+                m.msg_id,
+                m.date,
+                el.category,
+                el.topics,
+                el.confidence
+            FROM messages AS m
+            JOIN effective_labels AS el
+              ON el.chat_id = m.chat_id
+             AND el.msg_id = m.msg_id
+            WHERE el.category IN ('case', 'insight', 'question')
+            ORDER BY
+                CASE el.category
+                    WHEN 'case' THEN 1
+                    WHEN 'insight' THEN 2
+                    WHEN 'question' THEN 3
+                    ELSE 9
+                END,
+                el.confidence DESC,
+                m.date ASC
+            LIMIT ?
+            """,
+            (limit,),
+        )
+    )
+    return [
+        {
+            "id": f"insight{index}",
+            "title": f"{terminal_safe(row['category'])}: {terminal_safe(row['topics'] or 'без темы')}",
+            "category": terminal_safe(row["category"]),
+            "summary": (
+                "Сообщение требует ручного чтения: оно может быть вопросом, "
+                "кейсом или инсайтом для будущей гипотезы."
+            ),
+            "tags": _topic_values_from_db(row["topics"]),
+            "confidence": float(row["confidence"]),
+            "message_id": terminal_safe(
+                _message_ref_display(
+                    str(row["chat_id"]),
+                    int(row["msg_id"]),
+                    chat_aliases,
+                    raw_local=False,
+                )
+            ),
+            "date": terminal_safe(row["date"]),
+        }
+        for index, row in enumerate(rows, start=1)
+    ]
+
+
+def _site_niches(
+    db: Database,
+    chat_aliases: dict[str, str],
+    *,
+    limit: int,
+) -> list[dict[str, object]]:
+    rows = list(
+        db.conn.execute(
+            db.EFFECTIVE_LABELS_CTE
+            + """
+            SELECT
+                m.chat_id,
+                m.msg_id,
+                el.category,
+                el.topics
+            FROM messages AS m
+            JOIN effective_labels AS el
+              ON el.chat_id = m.chat_id
+             AND el.msg_id = m.msg_id
+            WHERE el.topics <> ''
+            ORDER BY m.date ASC, m.msg_id ASC
+            """
+        )
+    )
+    grouped: dict[str, dict[str, object]] = {}
+    for row in rows:
+        for topic in _topic_values_from_db(row["topics"]):
+            item = grouped.setdefault(
+                topic,
+                {
+                    "topic": topic,
+                    "message_count": 0,
+                    "categories": set(),
+                    "evidence": [],
+                },
+            )
+            item["message_count"] = int(item["message_count"]) + 1
+            item["categories"].add(str(row["category"]))
+            evidence = item["evidence"]
+            if len(evidence) < 8:
+                evidence.append(
+                    _message_ref_display(
+                        str(row["chat_id"]),
+                        int(row["msg_id"]),
+                        chat_aliases,
+                        raw_local=False,
+                    )
+                )
+
+    sorted_items = sorted(
+        grouped.values(),
+        key=lambda item: (-int(item["message_count"]), str(item["topic"])),
+    )[:limit]
+    return [
+        {
+            "id": f"topic{index}",
+            "title": terminal_safe(item["topic"]),
+            "summary": (
+                "Тема часто встречалась в labels. Используй ее как вход "
+                "для ручного просмотра кластеров и гипотез."
+            ),
+            "message_count": int(item["message_count"]),
+            "categories": ",".join(sorted(item["categories"])),
+            "evidence_message_ids": ",".join(item["evidence"]),
+        }
+        for index, item in enumerate(sorted_items, start=1)
+    ]
+
+
+def _site_tools(summary: dict[str, object]) -> list[dict[str, object]]:
+    tools = []
+    for index, item in enumerate(summary.get("solutions", []), start=1):
+        tools.append(
+            {
+                "id": item["solution_id"],
+                "name": item["solution_id"],
+                "category": item["primary_subtype"],
+                "solution_type": item["solution_type"],
+                "payment_status": item["payment_status"],
+                "trust_level": item["trust_level"],
+                "description": (
+                    "Упоминание решения или конкурента. Locator скрыт alias-ом: "
+                    f"{item['locators']}."
+                ),
+                "rating": _tool_rating(str(item["trust_level"]), str(item["payment_status"])),
+                "verdict": _tool_verdict(str(item["payment_status"])),
+                "source_message_ids": item["source_message_ids"],
+                "order": index,
+            }
+        )
+    return tools
+
+
+def _site_for_you(
+    *,
+    project_name: str,
+    project_summary: str,
+    project_profile: dict[str, object],
+    summary: dict[str, object],
+    participants: list[dict[str, object]],
+    niches: list[dict[str, object]],
+) -> dict[str, object]:
+    opportunities = list(summary.get("opportunities", []))
+    quality_gaps = list(summary.get("quality_gaps", []))
+    target_segments = _profile_values(project_profile, "target_segments")
+    focus_themes = _profile_values(project_profile, "focus_themes")
+    avoid_themes = _profile_values(project_profile, "avoid_themes")
+    offer_types = _profile_values(project_profile, "offer_types")
+    decision_criteria = _profile_values(project_profile, "decision_criteria")
+    design_preferences = _profile_values(project_profile, "design_preferences")
+    next_questions = _profile_values(project_profile, "next_questions")
+
+    now = []
+    for index, item in enumerate(opportunities[:5], start=1):
+        actions = [
+            f"Открыть evidence IDs: {item['evidence_message_ids']}",
+            f"Проверить MVP: {item['first_mvp']}",
+            "Решить GO / PIVOT / STOP до разработки продукта.",
+        ]
+        if focus_themes:
+            actions.append(
+                "Сверить гипотезу с фокус-темами: "
+                f"{_join_profile_values(focus_themes)}."
+            )
+        if target_segments:
+            actions.append(
+                "Проверить на первом сегменте: "
+                f"{_join_profile_values(target_segments)}."
+            )
+        if decision_criteria:
+            actions.append(
+                "Оценить по критериям владельца: "
+                f"{_join_profile_values(decision_criteria)}."
+            )
+        now.append(
+            {
+                "title": f"Проверить гипотезу {item['opportunity_id']}",
+                "type": "opportunity",
+                "priority": "P0" if index == 1 else "P1",
+                "actions": actions,
+                "why": (
+                    f"Score={item['score']}, verdict={item['verdict']}, "
+                    f"payment_reason={item['payment_reason']}."
+                ),
+            }
+        )
+    if not now:
+        now.append(
+            {
+                "title": "Усилить выборку перед выбором продукта",
+                "type": "research",
+                "priority": "P0",
+                "actions": [
+                    "Открыть раздел Инсайты и ручную проверку.",
+                    "Добавить manual labels для спорных сообщений.",
+                    _fallback_focus_action(focus_themes, target_segments),
+                    "Перегенерировать сайт после review.",
+                ],
+                "why": "В summary пока нет сильных opportunity cards.",
+            }
+        )
+
+    people_to_contact = [
+        {
+            "name": item["name"],
+            "project": item.get("topics", "unknown"),
+            "why": (
+                "Этот participant alias активен в выборке. Проверь его "
+                f"сообщения начиная с {item['sample_message_id']}."
+            ),
+            "ask": "Какая повторяющаяся боль или готовое решение стоит за его сообщениями?",
+        }
+        for item in participants[:8]
+    ]
+
+    to_apply = [
+        {
+            "from": f"Тема {item['title']}",
+            "what": item["summary"],
+            "applicability": _profile_applicability(
+                project_name,
+                target_segments,
+                offer_types,
+            ),
+            "rating": 4 if int(item["message_count"]) >= 3 else 3,
+        }
+        for item in niches[:8]
+    ]
+
+    open_issues = [
+        {
+            "issue": gap,
+            "your_status": "Нужно проверить качество анализа до продуктового решения.",
+            "ideas_from_chat": [
+                "Открыть review candidates.",
+                "Сверить evidence IDs в разделах Кластеры/Инсайты.",
+            ],
+        }
+        for gap in quality_gaps[:5]
+    ]
+    open_issues.extend(
+        {
+            "issue": question,
+            "your_status": "Вопрос из project profile, нужен ответ после просмотра evidence.",
+            "ideas_from_chat": [
+                "Проверить разделы Для тебя и Темы.",
+                "Сравнить с focus_themes и decision_criteria.",
+            ],
+        }
+        for question in next_questions[:5]
+    )
+
+    project_fit = [
+        _project_fit_block(
+            "Целевая аудитория",
+            target_segments,
+            "Кому должен быть полезен следующий MVP.",
+        ),
+        _project_fit_block(
+            "Фокус-темы",
+            focus_themes,
+            "Какие темы считать приоритетными при чтении evidence.",
+        ),
+        _project_fit_block(
+            "Форматы продукта",
+            offer_types,
+            "Во что можно упаковать найденную возможность.",
+        ),
+        _project_fit_block(
+            "Критерии решения",
+            decision_criteria,
+            "Как принять GO / PIVOT / STOP после ручной проверки.",
+        ),
+    ]
+    if avoid_themes:
+        project_fit.append(
+            _project_fit_block(
+                "Не в фокусе",
+                avoid_themes,
+                "Темы, которые лучше не превращать в MVP без отдельного решения.",
+            )
+        )
+
+    return {
+        "user": terminal_safe(project_profile.get("user", "owner")),
+        "project": f"{terminal_safe(project_name)} — {terminal_safe(project_summary)}",
+        "summary": (
+            "Персональная подборка построена автоматически из privacy-safe "
+            "summary, opportunities, participants aliases, topic aggregates "
+            "и локального project profile."
+        ),
+        "project_profile": {
+            "target_segments": target_segments,
+            "focus_themes": focus_themes,
+            "avoid_themes": avoid_themes,
+            "offer_types": offer_types,
+            "decision_criteria": decision_criteria,
+            "design_preferences": design_preferences,
+            "next_questions": next_questions,
+        },
+        "project_fit": project_fit,
+        "now": now,
+        "people_to_contact": people_to_contact,
+        "to_apply": to_apply,
+        "open_issues_to_solve": open_issues,
+        "principles_to_remember": _profile_principles(
+            decision_criteria,
+            design_preferences,
+        ),
+        "deferred": [
+            {
+                "title": "Полный dashboard",
+                "rationale": "Сначала проверить полезность static site.",
+                "when": "Когда HTML-разделы начнут регулярно использоваться в пилотах.",
+            }
+        ],
+    }
+
+
+def _profile_values(profile: dict[str, object], key: str) -> list[str]:
+    value = profile.get(key, [])
+    if not isinstance(value, list):
+        return []
+    return [terminal_safe(item) for item in value if str(item).strip()]
+
+
+def _join_profile_values(values: list[str]) -> str:
+    return ", ".join(values[:5])
+
+
+def _fallback_focus_action(
+    focus_themes: list[str],
+    target_segments: list[str],
+) -> str:
+    if focus_themes and target_segments:
+        return (
+            "Искать новые evidence под фокус "
+            f"{_join_profile_values(focus_themes)} для {_join_profile_values(target_segments)}."
+        )
+    if focus_themes:
+        return f"Искать новые evidence под фокус: {_join_profile_values(focus_themes)}."
+    if target_segments:
+        return f"Искать evidence для сегмента: {_join_profile_values(target_segments)}."
+    return "Сформулировать фокус-темы и первый сегмент в project profile."
+
+
+def _profile_applicability(
+    project_name: str,
+    target_segments: list[str],
+    offer_types: list[str],
+) -> str:
+    parts = [
+        f"Для {project_name}: использовать как фильтр при выборе следующей продуктовой гипотезы."
+    ]
+    if target_segments:
+        parts.append(f"Первый сегмент: {_join_profile_values(target_segments)}.")
+    if offer_types:
+        parts.append(f"Проверить упаковку: {_join_profile_values(offer_types)}.")
+    return " ".join(parts)
+
+
+def _project_fit_block(title: str, items: list[str], why: str) -> dict[str, object]:
+    return {
+        "title": title,
+        "items": items or ["Не задано"],
+        "why": why,
+    }
+
+
+def _profile_principles(
+    decision_criteria: list[str],
+    design_preferences: list[str],
+) -> list[str]:
+    principles = [
+        "Сначала evidence в чате, потом продуктовая гипотеза.",
+        "Не строить MVP, если данные для проверки недоступны.",
+        "Показывать путь от message IDs к выводу.",
+        "Держать raw Telegram data локально.",
+        "После manual review перегенерировать сайт.",
+    ]
+    principles.extend(
+        f"Критерий решения: {item}." for item in decision_criteria[:5]
+    )
+    principles.extend(
+        f"Предпочтение продукта: {item}." for item in design_preferences[:5]
+    )
+    return principles
+
+
+def _format_site_datetime(value: str) -> tuple[str, str]:
+    if not value:
+        return "unknown", ""
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return terminal_safe(value), ""
+    return parsed.strftime("%d.%m.%Y"), parsed.strftime("%H:%M")
+
+
+def _csv_values_from_db(value: object) -> tuple[str, ...]:
+    seen = set()
+    result = []
+    for part in str(value or "").split(","):
+        text = part.strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        result.append(terminal_safe(text))
+    return tuple(result)
+
+
+def _topic_values_from_db(value: object) -> tuple[str, ...]:
+    topics = []
+    seen = set()
+    for group in str(value or "").split(","):
+        for topic in group.split("|"):
+            cleaned = topic.strip()
+            if not cleaned or cleaned in seen:
+                continue
+            seen.add(cleaned)
+            topics.append(terminal_safe(cleaned))
+    return tuple(topics)
+
+
+def _tool_rating(trust_level: str, payment_status: str) -> int:
+    if trust_level == "strong":
+        return 5
+    if trust_level == "medium":
+        return 4
+    if payment_status == "trust_signals_present":
+        return 3
+    return 2
+
+
+def _tool_verdict(payment_status: str) -> str:
+    if payment_status == "trust_signals_present":
+        return "Проверить как доказательство willingness_to_pay."
+    if payment_status == "ad_only_unproven":
+        return "Считать рекламным сигналом, не доказательством оплаты."
+    return "Слабый сигнал, нужна ручная проверка."
+
+
 def run_evaluate(
     db_path: Path,
     expected_path: Path = DEFAULT_EXPECTED_LABELS,
@@ -2192,6 +3103,73 @@ def validate_private_db_path(
         "Refusing to store private Telegram data in a DB path that may be tracked. "
         "Use data/db/, a tests/_tmp*.sqlite fixture DB, or pass "
         "--allow-external-db for explicit local-only external storage."
+    )
+
+
+def validate_report_path(
+    output_path: Path,
+    *,
+    allow_external_report: bool = False,
+) -> None:
+    if output_path.suffix.lower() not in {".html", ".htm"}:
+        raise ValueError("Report output path must end with .html or .htm")
+
+    if allow_external_report:
+        return
+
+    resolved_path = output_path.resolve()
+    try:
+        resolved_path.relative_to(Path("data/reports").resolve())
+        return
+    except ValueError:
+        pass
+
+    try:
+        resolved_path.relative_to(Path("tests").resolve())
+        if output_path.name.startswith("_tmp") and output_path.suffix.lower() in {
+            ".html",
+            ".htm",
+        }:
+            return
+    except ValueError:
+        pass
+
+    raise ValueError(
+        "Refusing to write a generated report outside data/reports by default. "
+        "Use data/reports/, a tests/_tmp*.html fixture report, or pass "
+        "--allow-external-report for explicit local-only external output."
+    )
+
+
+def validate_site_dir_path(
+    output_dir: Path,
+    *,
+    allow_external_site: bool = False,
+) -> None:
+    if output_dir.suffix.lower() in {".html", ".htm", ".sqlite", ".db"}:
+        raise ValueError("Site output must be a directory path, not a file path.")
+
+    if allow_external_site:
+        return
+
+    resolved_path = output_dir.resolve()
+    try:
+        resolved_path.relative_to(Path("data/reports").resolve())
+        return
+    except ValueError:
+        pass
+
+    try:
+        resolved_path.relative_to(Path("tests").resolve())
+        if output_dir.name.startswith("_tmp"):
+            return
+    except ValueError:
+        pass
+
+    raise ValueError(
+        "Refusing to write a generated site outside data/reports by default. "
+        "Use data/reports/, a tests/_tmp* fixture site, or pass "
+        "--allow-external-site for explicit local-only external output."
     )
 
 

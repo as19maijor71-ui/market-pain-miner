@@ -1,28 +1,31 @@
-# Playbook: Classify Market Pains
+# Playbook: Классификация Market Pains
 
-## Goal
+## Цель
 
-Turn raw messages into useful market intelligence.
+Разложить сообщения из Telegram-чата по категориям и темам, чтобы дальше
+строить кластеры и гипотезы.
 
-## Categories
+## Категории
 
-- `pain`: direct complaint, frustration, loss, manual work, recurring blocker.
-- `question`: user asks how to solve a marketplace problem.
-- `solution_ad`: someone promotes a bot, service, site, table, course, or app.
-- `tool_mention`: neutral mention of a tool or service.
-- `case`: concrete story, result, experiment, or business example.
-- `insight`: practical observation, rule, warning, or pattern.
-- `offtopic`: greetings, jokes, logistics, unrelated messages.
+- `pain` — явная боль или проблема.
+- `question` — вопрос продавца/менеджера.
+- `solution_ad` — кто-то продвигает bot, service, site, table, course или app.
+- `tool_mention` — упоминание инструмента без явной рекламы.
+- `case` — кейс или опыт.
+- `insight` — полезное наблюдение.
+- `offtopic` — не относится к исследованию.
 
-## Topic Tags
+## Темы
 
-Use `.business/marketplaces/pain-taxonomy.md`.
+`analytics`, `ads`, `stock`, `cards`, `reviews`, `prices`, `margin`, `supply`,
+`penalties`, `api`, `managers`, `automation`.
 
-## Evidence Rule
+## Проверка
 
-Every useful classification should keep source message IDs. No evidence, no product conclusion.
+После `classify` запускать:
 
-## Batch Rule
-
-For large exports, process in batches and save progress. Do not rely on one huge context window.
-
+```powershell
+python -m app.cli --db $Db summary --limit 10
+python -m app.cli --db $Db site --output-dir data/reports/pilot-001-site --limit 20
+python -m app.cli --db $Db review --limit 20
+```

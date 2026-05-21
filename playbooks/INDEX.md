@@ -1,18 +1,19 @@
 # Playbooks
 
-Reusable Codex workflows for this project.
+Повторяемые процессы Codex для этого проекта.
 
-## Table
+## Таблица
 
-| Task | Playbook |
+| Задача | Playbook |
 |---|---|
-| Import Telegram export | [`01-import-telegram-export.md`](./01-import-telegram-export.md) |
-| Classify market pains | [`02-classify-market-pains.md`](./02-classify-market-pains.md) |
-| Create product opportunity card | [`03-product-opportunity-card.md`](./03-product-opportunity-card.md) |
-| Update from a new export | [`04-update-from-new-export.md`](./04-update-from-new-export.md) |
-| Extract ready solutions and competitors | [`05-competitor-scan.md`](./05-competitor-scan.md) |
-| Run first private pilot safely | [`06-pilot-runbook.md`](./06-pilot-runbook.md) |
+| Импорт Telegram export | [`01-import-telegram-export.md`](./01-import-telegram-export.md) |
+| Классификация market pains | [`02-classify-market-pains.md`](./02-classify-market-pains.md) |
+| Карточка продуктовой гипотезы | [`03-product-opportunity-card.md`](./03-product-opportunity-card.md) |
+| Обновление по новому export | [`04-update-from-new-export.md`](./04-update-from-new-export.md) |
+| Поиск конкурентов и готовых решений | [`05-competitor-scan.md`](./05-competitor-scan.md) |
+| Приватный пилот | [`06-pilot-runbook.md`](./06-pilot-runbook.md) |
 
-## Rule
+## Правило
 
-Before inventing a new workflow, check this index. If the task repeats twice, add a playbook.
+Перед новым workflow проверить этот index. Если задача повторяется второй раз,
+обновить или добавить playbook.

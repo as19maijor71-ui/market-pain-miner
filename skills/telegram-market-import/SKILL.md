@@ -1,40 +1,38 @@
 ---
 name: telegram-market-import
-description: Safely import Telegram Desktop result.json exports for local WB/Ozon market research. Use when the user provides a Telegram export path, asks to ingest or update chats, inspect import stats, or debug Telegram JSON normalization and SQLite storage.
+description: Импортировать Telegram Desktop exports для market research, безопасно хранить сообщения в SQLite и проверять качество импорта без публикации приватных данных.
 ---
 
-# Telegram Market Import
+# Импорт Telegram Market Data
 
-## Workflow
+## Процесс
 
-1. Confirm the input is Telegram Desktop `result.json` in machine-readable JSON format.
-2. Keep the export in `data/exports/` or another private local path. Do not commit it.
-3. Import with:
+1. Проверить, что export является Telegram Desktop `result.json`.
+2. Хранить raw export только в `data/exports/`.
+3. Импортировать в SQLite в `data/db/`.
+4. Не копировать raw messages, names, handles, IDs или private quotes в docs.
+5. После импорта запускать `classify`, `summary` и `report`.
 
-```powershell
-$Export = "<local-result-json-path>"
-python -m app.cli import $Export
-```
-
-4. Verify with:
+## Безопасный Поток
 
 ```powershell
-python -m app.cli stats --latest 10
+$Export = "data/exports/pilot-001/result.json"
+$Db = "data/db/pilot-001.sqlite"
+
+python -m app.cli --db $Db import $Export
+python -m app.cli --db $Db classify
+python -m app.cli --db $Db summary --limit 10
+python -m app.cli --db $Db site --output-dir data/reports/pilot-001-site --limit 20
 ```
 
-5. If import fails, inspect the JSON shape before changing parser logic.
+## Что Проверять
 
-## Expected Parser Behavior
-
-- Read only messages with `type == "message"`.
-- Flatten Telegram text arrays into plain text.
-- Preserve `chat_id`, `msg_id`, date, author, `from_id`, `topic_id`, reply id, forwarded source, media flags, and raw JSON.
-- Upsert by `(chat_id, msg_id)` so newer exports do not duplicate messages.
-
-## Privacy
-
-Raw exports, database files, and participant data stay local. Public reports should use anonymized evidence or aggregate counts.
+- количество импортированных чатов;
+- количество сообщений;
+- число labels после классификации;
+- наличие локального сайта;
+- отсутствие raw private data в tracked-файлах.
 
 ## References
 
-Read `references/sqlite-schema.md` when changing storage or debugging imports.
+Схема SQLite описана в `references/sqlite-schema.md`.

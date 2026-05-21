@@ -1,10 +1,11 @@
-# Plans
+# Планы
 
-One plan = one meaningful feature or work session.
+Здесь лежат планы работ, валидаций и продуктовых решений.
 
-Use `plans/TEMPLATE.md` for new tasks.
+Для нового нетривиального изменения создавать файл:
 
-## Rule
+```text
+plans/YYYY-MM-DD-short-name.md
+```
 
-Keep plans short and executable. Update checkboxes while working.
-
+Использовать `TEMPLATE.md`.

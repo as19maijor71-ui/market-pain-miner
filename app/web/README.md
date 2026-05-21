@@ -1,16 +1,15 @@
-# Web Interface
+# Локальный Сайт-Выжимка
 
-Placeholder for the local dashboard.
+Папка для кода, который делает наглядный локальный сайт по анализу чата.
 
-## Intended Sections
+Сюда нельзя класть приватные экспорты, SQLite-базы или сгенерированные отчеты.
+Готовые HTML-файлы должны жить в `data/reports/`, потому что эта папка
+игнорируется git.
 
-- Dashboard
-- Pain clusters
-- Ready solutions
-- Product opportunities
-- Chats and imports
-- Search
-- For me
+Ближайший scope:
 
-First build the importer and reports. Then add the interface.
-
+- multi-page static site;
+- `index`, `for-you`, `people`, `tools`, `insights`, `niches`;
+- JSON-слой данных в `data/*.json`;
+- блоки “что найдено”, “откуда выводы”, “какие гипотезы”;
+- приватность-безопасные aliases вместо сырых имен, URL и цитат.

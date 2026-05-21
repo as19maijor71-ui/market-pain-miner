@@ -1,21 +1,21 @@
-# Playbook: Product Opportunity Card
+# Playbook: Карточка Продуктовой Гипотезы
 
-## Goal
+## Цель
 
-Convert a pain cluster into a buildable product hypothesis.
+Превратить pain cluster в buildable product hypothesis.
 
-## Template
+## Шаблон
 
 ```markdown
-# Opportunity: [Name]
+# Opportunity: [Название]
 
-## Problem
+## Проблема
 
-What repeated pain was found?
+Какая повторяющаяся боль найдена?
 
-## Segment
+## Сегмент
 
-Who has this problem?
+У кого эта проблема?
 
 ## Evidence
 
@@ -23,34 +23,35 @@ Who has this problem?
 - Message IDs:
 - Frequency:
 
-## Current Workaround
+## Текущий Workaround
 
-How people solve it today.
+Как люди решают это сейчас?
 
-## Proposed MVP
+## MVP
 
-Smallest useful version.
+Самая маленькая полезная версия.
 
 ## Features
 
 - Must have:
 - Nice to have:
-- Do not build yet:
+- Не строить пока:
 
-## Monetization
+## Монетизация
 
-Who pays, how much, and why.
+Кто платит, сколько и почему?
 
-## Risks
+## Риски
 
-Technical, marketplace API, trust, privacy, competition.
+Технические, marketplace API, доверие, приватность, конкуренция.
 
 ## Score
 
-frequency / urgency / willingness_to_pay / mvp_speed / repeatability / defensibility / data_access
+frequency / urgency / willingness_to_pay / mvp_speed / repeatability /
+defensibility / data_access
 ```
 
-## Rule
+## Правило
 
-Prefer narrow tools with obvious daily utility over broad dashboards.
-
+Предпочитать узкие инструменты с понятной ежедневной пользой. Не строить
+широкий dashboard раньше, чем есть evidence и понятный локальный сайт.

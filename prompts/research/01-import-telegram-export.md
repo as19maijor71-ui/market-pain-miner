@@ -1,18 +1,11 @@
-# Prompt: Import Telegram Export
+# Prompt: Импорт Telegram Export
 
-Use the project-local skill `skills/telegram-market-import`.
+Импортируй Telegram Desktop `result.json` безопасно.
 
-Import this Telegram Desktop export:
+Требования:
 
-```text
-[PASTE_FULL_PATH_TO_RESULT_JSON]
-```
-
-Do the following:
-
-1. Verify it is a Telegram `result.json`.
-2. Import it into the default SQLite database.
-3. Show stats and latest 10 messages.
-4. Tell me if the chat looks relevant to WB/Ozon market research.
-5. Do not copy raw export content into git-tracked files.
-
+- raw export только в `data/exports/`;
+- DB только в `data/db/`;
+- после импорта запустить `classify`;
+- сгенерировать `summary` и локальный сайт;
+- не копировать raw messages, names, handles, user IDs, URLs или quotes.

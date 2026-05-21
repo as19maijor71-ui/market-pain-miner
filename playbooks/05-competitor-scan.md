@@ -1,38 +1,31 @@
-# Playbook: Competitor And Ready Solution Scan
+# Playbook: Поиск Конкурентов И Готовых Решений
 
-## Goal
+## Цель
 
-Extract ready solutions from Telegram chats and turn them into competitor intelligence.
+Извлечь из чатов и публичных источников сигналы о готовых решениях:
+ботах, сервисах, таблицах, курсах, dashboards, parser/tools и агентствах.
 
-## Signals
+## Что Фиксировать
 
-- Bot or service announcement.
-- Link to a landing page.
-- Screenshot or demo.
-- Pricing mention.
-- "I made a tool for..."
-- "Use this service..."
-- Repeated recommendation of the same product.
+- название;
+- тип решения;
+- обещанный результат;
+- целевой пользователь;
+- цена, если публично видна;
+- почему люди это рекомендуют или критикуют;
+- source message IDs или публичная ссылка;
+- слабость или незакрытый gap.
 
-## Fields
+## Правила Приватности
 
-- name
-- type
-- locator alias (`url1`, `handle1`, or `none` in tracked/public notes)
-- target user
-- promise
-- features
-- pricing
-- source message IDs
-- visible weakness
+В tracked-документах:
 
-Keep raw links, Telegram handles, and authors local-only. Do not copy them into
-tracked plans, retrospectives, README, issues, PRs, public reports, or chat
-messages. If a raw locator is needed for debugging, use the private local DB or
-rerun a raw-local command and summarize with aliases afterward.
+- URL и handles заменять aliases, если они из приватного чата;
+- не копировать приватные цитаты;
+- не публиковать имена участников.
 
-## Output
+## Вывод
 
-Competitor entry plus possible opportunity:
+Результат должен помогать answer:
 
-> What can we build simpler, narrower, faster, or more adapted to WB/Ozon managers?
+> Есть ли уже готовое решение, и где остается маленькая ниша для нашего MVP?

@@ -1,47 +1,53 @@
 ---
 name: codex-project-ops
-description: "Maintain this Codex project's operating system: read .business context, choose prompts/playbooks, create or update plans, write retrospectives, and keep private data out of git. Use when starting work, planning features, updating project memory, or adapting claude-code-starter style workflows to Codex."
+description: "Поддерживать операционную систему проекта: читать бизнес-контекст, выбирать prompts/playbooks, создавать и обновлять планы, писать ретроспективы и защищать приватные данные."
 ---
 
-# Codex Project Ops
+# Операции Проекта Codex
 
-## Workflow
+## Процесс
 
-1. Read `AGENTS.md`.
-2. For business/product work, read `.business/INDEX.md` and only the specific context files needed.
-3. Check `playbooks/INDEX.md` and `prompts/INDEX.md` before inventing a new workflow.
-4. For non-trivial implementation, create or update `plans/YYYY-MM-DD-name.md`.
-5. Keep `.business/`, `data/exports/`, `data/db/`, and `.env*` out of commits.
-6. After a meaningful session, add a concise retrospective in `retrospectives/`.
+1. Прочитать `AGENTS.md`.
+2. Для бизнес- и продуктовой работы прочитать `.business/INDEX.md` и только
+   нужные контекстные файлы.
+3. Перед новым повторяемым процессом проверить `playbooks/INDEX.md` и
+   `prompts/INDEX.md`.
+4. Перед нетривиальной реализацией создать или обновить
+   `plans/YYYY-MM-DD-name.md`.
+5. Не переносить `.business/`, `data/exports/`, `data/db/`, `data/reports/` и
+   `.env*` в публичные артефакты.
+6. После значимой сессии добавить короткую ретроспективу в `retrospectives/`.
 
-## Planning Rule
+## Правило Планирования
 
-Use `plans/TEMPLATE.md`. Keep the plan short:
+Использовать `plans/TEMPLATE.md`. План держать коротким:
 
-- goal
-- context
-- 3-5 phases
-- verification commands
-- result
+- цель;
+- контекст;
+- 3-5 фаз;
+- команды проверки;
+- результат.
 
-Update checkboxes while working.
+Обновлять чекбоксы по мере работы.
 
-## Retrospective Rule
+## Правило Ретроспективы
 
-Use `retrospectives/TEMPLATE.md` and capture:
+Использовать `retrospectives/TEMPLATE.md` и фиксировать:
 
-- task
-- what changed
-- result
-- what was learned
-- next step
+- задача;
+- что изменилось;
+- результат;
+- что узнали;
+- следующий шаг.
 
-Do not turn retrospectives into long reports.
+Ретроспективы не превращать в длинные отчеты.
 
-## Privacy Rule
+## Правило Приватности
 
-Never publish or commit raw Telegram exports, real participant handles, user IDs, private quotes, API keys, or local SQLite databases.
+Никогда не публиковать и не коммитить raw Telegram exports, реальные handles,
+user IDs, приватные цитаты, API keys, SQLite-базы и HTML/sites с приватными
+данными.
 
 ## References
 
-Read `references/project-map.md` when the repo structure is unclear.
+Если структура проекта неясна, читать `references/project-map.md`.

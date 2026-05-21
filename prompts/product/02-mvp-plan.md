@@ -1,19 +1,14 @@
-# Prompt: MVP Plan
+# Prompt: План Первого MVP
 
-Read `AGENTS.md`, `.business/INDEX.md`, and the relevant opportunity card.
+Сделай короткий план MVP для выбранной opportunity card.
 
-Create an implementation plan in `plans/YYYY-MM-DD-[slug].md` for the first MVP.
+План должен включать:
 
-The plan must include:
-
-- goal
-- user segment
-- first workflow
-- data required
-- modules/files to change
-- phases
-- verification commands
-- what not to build yet
-
-Keep the MVP small enough to build and test quickly.
-
+- цель;
+- входные данные;
+- самый маленький полезный результат;
+- что не строим сейчас;
+- 3-5 фаз;
+- команды проверки;
+- privacy risks;
+- критерий GO / PIVOT / STOP.

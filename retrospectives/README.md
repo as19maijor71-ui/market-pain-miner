@@ -1,10 +1,11 @@
-# Retrospectives
+# Ретроспективы
 
-Short memory after meaningful sessions.
+Короткая память проекта после значимых рабочих сессий.
 
-Use `retrospectives/TEMPLATE.md`.
+Формат:
 
-## Rule
+```text
+retrospectives/YYYY-MM-DD_HH-MM_short-name.md
+```
 
-The point is not ceremony. The point is to leave enough context so the next session starts faster.
-
+Не добавлять raw private data.

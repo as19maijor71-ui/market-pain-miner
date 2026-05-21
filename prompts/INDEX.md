@@ -1,36 +1,35 @@
-# Prompts Index
+# Индекс Промптов
 
-Copy these prompts into Codex when you want a repeatable workflow.
+Готовые промпты для повторяемых задач.
 
 ## Setup
 
-| Task | Prompt |
+| Задача | Prompt |
 |---|---|
-| Fill business context | [`setup/01-fill-business-context.md`](./setup/01-fill-business-context.md) |
+| Заполнить бизнес-контекст | [`setup/01-fill-business-context.md`](./setup/01-fill-business-context.md) |
 
 ## Research
 
-| Task | Prompt |
+| Задача | Prompt |
 |---|---|
-| Import Telegram export | [`research/01-import-telegram-export.md`](./research/01-import-telegram-export.md) |
-| Classify pains | [`research/02-classify-pains.md`](./research/02-classify-pains.md) |
-| Competitor scan | [`research/03-competitor-scan.md`](./research/03-competitor-scan.md) |
+| Импорт Telegram export | [`research/01-import-telegram-export.md`](./research/01-import-telegram-export.md) |
+| Классификация болей | [`research/02-classify-pains.md`](./research/02-classify-pains.md) |
+| Поиск конкурентов | [`research/03-competitor-scan.md`](./research/03-competitor-scan.md) |
 
 ## Product
 
-| Task | Prompt |
+| Задача | Prompt |
 |---|---|
-| Build opportunity card | [`product/01-opportunity-card.md`](./product/01-opportunity-card.md) |
-| Plan first MVP | [`product/02-mvp-plan.md`](./product/02-mvp-plan.md) |
+| Собрать opportunity card | [`product/01-opportunity-card.md`](./product/01-opportunity-card.md) |
+| Спланировать первый MVP | [`product/02-mvp-plan.md`](./product/02-mvp-plan.md) |
 
 ## Methodology
 
-| Task | Prompt |
+| Задача | Prompt |
 |---|---|
-| Critique a plan | [`methodology/01-plan-critique.md`](./methodology/01-plan-critique.md) |
-| Weekly research review | [`methodology/02-weekly-research-review.md`](./methodology/02-weekly-research-review.md) |
+| Покритиковать план | [`methodology/01-plan-critique.md`](./methodology/01-plan-critique.md) |
+| Недельный research review | [`methodology/02-weekly-research-review.md`](./methodology/02-weekly-research-review.md) |
 
-## Rule
+## Правило
 
-Before writing a new prompt from scratch, check this index.
-
+Перед новым промптом проверить этот index.

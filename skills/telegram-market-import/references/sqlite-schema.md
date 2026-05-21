@@ -1,36 +1,17 @@
 # SQLite Schema
 
-## chats
+## Таблицы
 
-- `chat_id`: normalized Telegram chat id.
-- `name`: chat name from export.
-- `type`: Telegram export chat type.
-- `total_messages`: number of content messages in import.
+- `chats` — metadata Telegram-чата.
+- `messages` — raw и normalized messages.
+- `classifier_runs` — версии и запуски классификатора.
+- `message_labels` — labels от rules/manual review.
 
-## messages
+## Принцип
 
-Primary key: `(chat_id, msg_id)`.
+Raw data остается только в локальной SQLite-базе. Отчеты и публичные документы
+используют aliases, агрегаты и evidence IDs.
 
-Important fields:
+## Будущее
 
-- `date`
-- `author`
-- `from_id`
-- `topic_id`
-- `reply_to`
-- `forwarded_from`
-- `text`
-- `normalized_text`
-- `has_photo`
-- `has_file`
-- `media_type`
-- `raw_json`
-
-## message_labels
-
-Stores classifications by source:
-
-- `category`
-- `topics`
-- `confidence`
-- `source`
+FTS добавлять только когда поиск станет следующим узким bottleneck.

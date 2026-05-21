@@ -1,16 +1,15 @@
-# Prompt: Plan Critique
+# Prompt: Критика Плана
 
-Read the plan below or the plan file I name:
+Покритикуй план как senior product/engineering reviewer.
 
-```text
-[PASTE_PLAN_OR_FILE_PATH]
-```
+Сначала найди риски:
 
-Critique it from three angles:
+- недоказанная боль;
+- недоступные данные;
+- слишком широкий scope;
+- нет платящего сегмента;
+- нет evidence;
+- приватность;
+- слишком рано пишем код.
 
-1. Product risk: are we solving a real paid pain?
-2. Technical risk: what can break or become too large?
-3. Go-to-market risk: can we validate/sell this simply?
-
-Then rewrite the plan with tighter scope if needed. Do not implement until the plan is improved.
-
+Потом предложи более узкий следующий шаг.

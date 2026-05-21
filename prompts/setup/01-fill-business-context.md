@@ -1,18 +1,12 @@
-# Prompt: Fill Business Context
+# Prompt: Заполнить Бизнес-Контекст
 
-Read `AGENTS.md` and `.business/INDEX.md`.
+Прочитай текущий проект и помоги заполнить `.business/` на русском языке.
 
-Help me fill or refine the private business context for this WB/Ozon market pain mining project. Ask only the minimum questions needed, one block at a time.
+Сохрани фокус:
 
-Update the relevant files in `.business/`:
+- локальный анализ Telegram-чатов WB/Ozon;
+- наглядный локальный сайт как главный результат;
+- поиск платных гипотез через evidence;
+- приватность raw data.
 
-- company
-- products
-- audience
-- marketplaces
-- economics
-- marketing
-- research
-
-Keep private data out of git-tracked public files. After changes, update or create a short plan/retrospective if useful.
-
+Не добавляй фантазии без пометки “гипотеза”.

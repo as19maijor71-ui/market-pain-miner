@@ -1,14 +1,17 @@
-# Project Map
+# Карта Проекта
 
-- `AGENTS.md`: rules for Codex.
-- `CODEX_AUTOPILOT.md`: onboarding and setup progress.
-- `.business/`: private business context.
-- `skills/`: project-local Codex skills.
-- `prompts/`: copyable prompt library.
-- `playbooks/`: short procedural workflows.
-- `plans/`: feature/session plans.
-- `retrospectives/`: session memory.
-- `app/`: Python application code.
-- `data/exports/`: private Telegram exports, ignored by git.
-- `data/db/`: local SQLite databases, ignored by git.
-
+- `AGENTS.md` — правила проекта для Codex.
+- `README.md` — быстрый вход и команды.
+- `ARCHITECTURE.md` — архитектура приложения и продукта.
+- `CODEX_AUTOPILOT.md` — протокол запуска и продолжения.
+- `.business/` — приватный бизнес-контекст.
+- `app/` — Python-код CLI, импорта, классификации и отчетов.
+- `app/web/` — код локального HTML/web-отчета.
+- `data/exports/` — raw Telegram exports, ignored.
+- `data/db/` — SQLite-базы, ignored.
+- `data/reports/` — сгенерированные HTML-отчеты и static sites, ignored.
+- `plans/` — планы работ.
+- `retrospectives/` — короткие итоги сессий.
+- `playbooks/` — повторяемые процессы.
+- `prompts/` — готовые промпты.
+- `skills/` — локальные навыки проекта.

@@ -1,25 +1,23 @@
-# Classification Output Shape
-
-Use this shape for research outputs:
+# Форма Вывода Классификации
 
 ```json
 {
   "clusters": [
     {
-      "title": "Daily margin calculation is still manual",
+      "title": "short problem name",
       "category": "pain",
-      "marketplace": "wb|ozon|both",
-      "topics": ["margin", "automation"],
-      "segment": "marketplace managers",
-      "evidence_msg_ids": [123, 456],
-      "frequency": 2,
-      "current_workaround": "Excel and manual dashboard checks",
-      "product_direction": "margin alert/report bot",
-      "confidence": 0.72
+      "marketplace": "wb|ozon|shared|unknown",
+      "audience_segment": "seller|manager|agency|unknown",
+      "evidence_message_ids": ["chat1:42"],
+      "current_workaround": "manual spreadsheet",
+      "possible_product_direction": "small bot/dashboard/report",
+      "confidence": "low|medium|high"
     }
   ]
 }
 ```
 
-Keep titles short and concrete. Avoid generic phrases like "automation problem".
+## Правило
 
+В публичном и tracked-выводе использовать aliases и агрегаты. Raw quotes,
+handles, URLs, имена участников и user IDs не копировать.

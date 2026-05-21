@@ -1,19 +1,19 @@
-# Playbook: Update From New Export
+# Playbook: Обновление По Новому Export
 
-## Goal
+## Цель
 
-Process a newer Telegram export without rebuilding everything from scratch.
+Безопасно повторить анализ на новом Telegram export и сравнить выводы.
 
-## Steps
+## Шаги
 
-1. Import the new `result.json`.
-2. Upsert messages by `(chat_id, msg_id)`.
-3. Classify only new or unclassified messages.
-4. Update aggregate reports.
-5. Re-score affected opportunity cards.
-6. Add a retrospective if the update changes product direction.
+1. Создать новый `run-id`.
+2. Положить export в отдельную ignored-папку.
+3. Импортировать в новую SQLite-базу.
+4. Запустить `classify`.
+5. Сгенерировать новый локальный сайт.
+6. Сравнить только агрегаты, кластеры, решения и opportunity cards.
 
-## Rule
+## Правило
 
-Never duplicate messages. The database primary key is `chat_id + msg_id`.
-
+Не смешивать выводы разных приватных экспортов без явной причины и без новых
+aliases.

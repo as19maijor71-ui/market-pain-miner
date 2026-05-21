@@ -1,69 +1,42 @@
-# Opportunity: [Name]
+# Opportunity: [Название]
 
-## Problem
+## Проблема
 
-[Repeated pain in one paragraph.]
+Какая повторяющаяся боль найдена?
 
-## Segment
+## Сегмент
 
-[Who pays and who uses it.]
+У кого эта проблема?
 
 ## Evidence
 
-- Sources:
+- Chat/source:
 - Message IDs:
 - Frequency:
 
-## Current Workaround
+## Текущий Workaround
 
-[How people solve it today.]
+Как люди решают это сегодня?
 
-## Proposed MVP
+## MVP
 
-[Smallest useful version.]
+Самая маленькая полезная версия.
 
 ## Features
 
-Must have:
+- Must have:
+- Nice to have:
+- Не строить пока:
 
-- 
+## Монетизация
 
-Nice to have:
+Кто платит, сколько и почему?
 
-- 
+## Риски
 
-Do not build yet:
-
-- 
-
-## Monetization
-
-[Price model and why the segment pays.]
-
-## Risks
-
-- Technical:
-- Data/API:
-- Trust/privacy:
-- Competition:
+Технические риски, marketplace API, доверие, приватность, конкуренция.
 
 ## Score
 
-| Dimension | Score |
-|---|---:|
-| frequency |  |
-| urgency |  |
-| willingness_to_pay |  |
-| mvp_speed |  |
-| repeatability |  |
-| defensibility |  |
-| data_access |  |
-
-Total:
-
-Verdict:
-
-## Next Validation Step
-
-[One practical next action.]
-
+frequency / urgency / willingness_to_pay / mvp_speed / repeatability /
+defensibility / data_access

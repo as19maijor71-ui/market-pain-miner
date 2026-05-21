@@ -1,15 +1,14 @@
-# Prompt: Weekly Research Review
+# Prompt: Недельный Research Review
 
-Read recent imports, reports, plans, and retrospectives.
+Собери короткий обзор исследовательской недели.
 
-Create a weekly research review:
+Нужно:
 
-- top 5 repeated pains
-- new ready solutions or competitor signals
-- strongest product opportunity this week
-- weak ideas to ignore
-- what to validate next
-- recommended build priority
+- какие чаты/выборки анализировали;
+- какие кластеры повторились;
+- какие решения/конкуренты встретились;
+- какие opportunity cards сильнее;
+- какие гипотезы закрыты или остановлены;
+- какой следующий узкий эксперимент.
 
-Save a concise summary in `retrospectives/` if it changes project direction.
-
+Не включать raw private data.

@@ -1,27 +1,19 @@
 # Prompt: Opportunity Card
 
-Use the project-local skill `skills/product-opportunity-builder`.
+Собери карточку продуктовой гипотезы из evidence-backed cluster.
 
-Turn this pain cluster into a product opportunity card:
+Поля:
 
-```text
-[PASTE_CLUSTER_OR_MESSAGE_IDS]
-```
+- проблема;
+- сегмент;
+- evidence IDs;
+- частота;
+- current workaround;
+- готовые решения;
+- первый MVP;
+- почему заплатят;
+- риски;
+- score;
+- следующий validation step.
 
-Include:
-
-- problem
-- segment
-- evidence
-- current workaround
-- proposed MVP
-- must-have features
-- nice-to-have features
-- do-not-build-yet list
-- monetization
-- risks
-- score
-- next validation step
-
-Keep it specific to WB/Ozon sellers, managers, or agencies.
-
+Не рекомендовать разработку, если идея не продается одной понятной строкой.

@@ -1,50 +1,55 @@
 ---
 name: wb-ozon-pain-mining
-description: Analyze imported Telegram messages from WB/Ozon seller chats to classify pains, questions, ready solutions, competitor ads, cases, insights, marketplace topics, and evidence-backed opportunity clusters. Use when extracting market research from chats or ranking seller problems.
+description: Анализировать Telegram-сообщения из WB/Ozon-чатов, выделять боли, вопросы, решения, рекламу, кейсы, инсайты, темы и evidence-backed opportunity clusters.
 ---
 
-# WB/Ozon Pain Mining
+# Поиск Болей WB/Ozon
 
-## Workflow
+## Процесс
 
-1. Read `.business/marketplaces/pain-taxonomy.md` and `.business/marketplaces/solution-taxonomy.md`.
-2. Classify messages into:
-   `pain`, `question`, `solution_ad`, `tool_mention`, `case`, `insight`, `offtopic`.
-3. Add topic tags:
-   `analytics`, `ads`, `stock`, `cards`, `reviews`, `prices`, `margin`, `supply`, `penalties`, `api`, `managers`, `automation`.
-4. Group repeated problems by topic, wording, segment, and current workaround.
-5. Keep evidence message IDs for every useful conclusion.
-6. Separate WB-only, Ozon-only, and shared marketplace problems.
+1. Прочитать `.business/marketplaces/pain-taxonomy.md` и
+   `.business/marketplaces/solution-taxonomy.md`.
+2. Классифицировать сообщения:
+   `pain`, `question`, `solution_ad`, `tool_mention`, `case`, `insight`,
+   `offtopic`.
+3. Добавить topic tags:
+   `analytics`, `ads`, `stock`, `cards`, `reviews`, `prices`, `margin`,
+   `supply`, `penalties`, `api`, `managers`, `automation`.
+4. Группировать повторяющиеся проблемы по теме, формулировке, сегменту и
+   workaround.
+5. Для каждого вывода сохранять evidence message IDs.
+6. Разделять WB-only, Ozon-only и общие marketplace-проблемы.
+7. Показывать выводы на локальном сайте, чтобы человек видел цепочку от сообщений
+   к гипотезам.
 
-## Strong Pain Signals
+## Сильные Сигналы Боли
 
-- repeated manual work
-- money loss or ad budget waste
-- penalties, blocked workflows, or missed deadlines
-- confusion repeated by several users
-- managers reporting the same issue across clients
-- requests for tools, bots, tables, alerts, or dashboards
+- повторяющаяся ручная работа;
+- потеря денег или слив рекламного бюджета;
+- штрафы, блокировки, missed deadlines;
+- один и тот же вопрос от разных людей;
+- менеджеры сообщают одну проблему по нескольким клиентам;
+- запросы на tools, bots, tables, alerts, dashboards.
 
-## Ready Solution Signals
+## Сигналы Готовых Решений
 
-- links to bots, services, dashboards, tables, courses, or extensions
-- messages with "сделал", "запустили", "демо", "пишите", "подписка"
-- repeated recommendations of the same tool
+- ссылки на bots, services, dashboards, tables, courses, extensions;
+- сообщения с “сделал”, “запустили”, “демо”, “пишите”, “подписка”;
+- повторные рекомендации одного инструмента.
 
-## Output
+## Результат
 
-Produce clusters with:
+Кластеры должны содержать:
 
-- title
-- category
-- marketplace
-- audience segment
-- evidence message IDs
-- current workaround
-- possible product direction
-- confidence
+- title;
+- category;
+- marketplace;
+- audience segment;
+- evidence message IDs;
+- current workaround;
+- possible product direction;
+- confidence.
 
 ## References
 
-Read `references/classification-output.md` for output shape.
-
+Форма вывода описана в `references/classification-output.md`.

@@ -1,50 +1,50 @@
 ---
 name: product-opportunity-builder
-description: Convert validated WB/Ozon pain clusters and competitor signals into scored product opportunity cards, MVP scope, pricing hypotheses, and first implementation plans. Use when deciding what app, bot, dashboard, automation, or service to build next.
+description: Превращать проверенные pain clusters и competitor signals в scored product opportunity cards, MVP scope, pricing hypotheses и первые планы реализации.
 ---
 
-# Product Opportunity Builder
+# Сборка Продуктовых Возможностей
 
-## Workflow
+## Процесс
 
-1. Start from an evidence-backed pain cluster, not a vague idea.
-2. Identify the paying segment: seller, manager, agency, or advanced operator.
-3. Capture current workaround and existing solutions.
-4. Define the smallest useful MVP.
-5. Score the idea using `.business/research/opportunity-scoring.md`.
-6. Mark what not to build yet.
-7. If selected, create a plan in `plans/YYYY-MM-DD-name.md`.
+1. Начинать с evidence-backed pain cluster, а не с абстрактной идеи.
+2. Определить платящий сегмент: seller, manager, agency или advanced operator.
+3. Зафиксировать current workaround и существующие решения.
+4. Определить самый маленький полезный MVP.
+5. Оценить идею по `.business/research/opportunity-scoring.md`.
+6. Явно отметить, что пока не строим.
+7. Показать opportunity card на локальном сайте.
+8. Если идея выбрана, создать план `plans/YYYY-MM-DD-name.md`.
 
-## Opportunity Card Fields
+## Поля Opportunity Card
 
-- problem
-- segment
-- evidence
-- current workaround
-- proposed MVP
-- must-have features
-- nice-to-have features
-- do-not-build-yet list
-- monetization
-- risks
-- score
-- next validation step
+- problem;
+- segment;
+- evidence;
+- current workaround;
+- proposed MVP;
+- must-have features;
+- nice-to-have features;
+- do-not-build-yet list;
+- monetization;
+- risks;
+- score;
+- next validation step.
 
-## Scoring Rule
+## Scoring
 
-Score 1-5:
+Оценка 1-5:
 
-- frequency
-- urgency
-- willingness_to_pay
-- mvp_speed
-- repeatability
-- defensibility
-- data_access
+- frequency;
+- urgency;
+- willingness_to_pay;
+- mvp_speed;
+- repeatability;
+- defensibility;
+- data_access.
 
-Do not recommend building unless the idea is specific enough to sell in one sentence.
+Не рекомендовать разработку, если идею нельзя продать одной конкретной строкой.
 
 ## Assets
 
-Use `assets/opportunity-card-template.md` when writing a full card.
-
+Для полной карточки использовать `assets/opportunity-card-template.md`.

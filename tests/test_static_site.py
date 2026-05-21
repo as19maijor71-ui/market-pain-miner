@@ -5,15 +5,20 @@ from contextlib import contextmanager
 import json
 from pathlib import Path
 import shutil
+import subprocess
+import sys
 from uuid import uuid4
 
 import pytest
 
 from app.cli import (
     load_project_profile,
+    project_profile_template_payload,
     run_classify,
     run_import,
+    run_profile_template,
     run_site,
+    validate_project_profile_template_path,
     validate_site_dir_path,
 )
 
@@ -51,6 +56,16 @@ def temporary_profile_path(payload: object) -> Iterator[Path]:
             json.dumps(payload, ensure_ascii=False),
             encoding="utf-8",
         )
+        yield profile_path
+    finally:
+        if profile_path.exists():
+            profile_path.unlink()
+
+
+@contextmanager
+def temporary_profile_output_path() -> Iterator[Path]:
+    profile_path = Path(__file__).parent / f"_tmp_profile_template_{uuid4().hex}.json"
+    try:
         yield profile_path
     finally:
         if profile_path.exists():
@@ -172,6 +187,67 @@ def test_project_profile_rejects_invalid_json_shape() -> None:
     with temporary_profile_path(["not", "an", "object"]) as profile_path:
         with pytest.raises(ValueError, match="JSON object"):
             load_project_profile(profile_path)
+
+
+def test_profile_template_cli_creates_privacy_safe_json() -> None:
+    with temporary_profile_output_path() as profile_path:
+        completed = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "app.cli",
+                "profile-template",
+                "--output",
+                str(profile_path),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(profile_path.read_text(encoding="utf-8"))
+        loaded_profile = load_project_profile(profile_path)
+        serialized = json.dumps(payload, ensure_ascii=False)
+
+    assert "Project profile template created" in completed.stdout
+    assert payload == project_profile_template_payload()
+    assert loaded_profile["focus_themes"] == ["reviews", "penalties", "automation"]
+    assert loaded_profile["target_segments"] == [
+        "WB/Ozon seller",
+        "marketplace manager",
+    ]
+    assert "@" not in serialized
+    assert "http://" not in serialized
+    assert "https://" not in serialized
+    assert "pilot-" not in serialized
+    assert "synthetic_participant" not in serialized
+    assert "3000000000" not in serialized
+
+
+def test_profile_template_refuses_overwrite_without_force() -> None:
+    with temporary_profile_output_path() as profile_path:
+        run_profile_template(profile_path)
+
+        with pytest.raises(ValueError, match="already exists"):
+            run_profile_template(profile_path)
+
+        result = run_profile_template(profile_path, force=True)
+
+    assert result["path"].endswith(profile_path.name)
+
+
+def test_profile_template_path_rejects_trackable_output_by_default() -> None:
+    validate_project_profile_template_path(Path("tests/_tmp_safe_profile.json"))
+    validate_project_profile_template_path(
+        Path("local-profile.json"),
+        allow_external_profile=True,
+    )
+
+    with pytest.raises(ValueError, match="outside data/reports"):
+        validate_project_profile_template_path(Path("project-profile.json"))
+
+    with pytest.raises(ValueError, match="must end with .json"):
+        validate_project_profile_template_path(Path("data/reports/project-profile.txt"))
 
 
 def test_site_dir_rejects_trackable_output_by_default() -> None:

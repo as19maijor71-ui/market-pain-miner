@@ -28,11 +28,13 @@
 $Export = "data/exports/pilot-001/result.json"
 $Db = "data/db/pilot-001.sqlite"
 $Site = "data/reports/pilot-001-site"
+$Profile = "data/reports/project-profile.json"
 
 python -m app.cli --db $Db import $Export
 python -m app.cli --db $Db classify
+python -m app.cli profile-template --output $Profile
 python -m app.cli --db $Db summary --limit 10
-python -m app.cli --db $Db site --output-dir $Site --limit 20
+python -m app.cli --db $Db site --output-dir $Site --limit 20 --project-profile $Profile
 python -m app.cli --db $Db review --limit 20
 python -m app.cli --db $Db opportunities --limit 10
 ```
@@ -48,6 +50,11 @@ python -m http.server 8765 -d $Site
 `summary` и `site` — первые результаты, которые можно обсуждать. Они не
 должны печатать raw names, handles, URLs, private chat names, raw quotes и raw
 chat IDs.
+
+`profile-template` не читает приватные данные и пишет только безопасные
+placeholder-поля для `site --project-profile`. Заполненный профиль хранить в
+ignored-папке вроде `data/reports/`; если там появились частные заметки, не
+переносить их в README, plans, retrospectives или PR-тексты.
 
 ## Optional Local Checks
 

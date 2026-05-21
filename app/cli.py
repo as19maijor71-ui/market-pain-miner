@@ -34,6 +34,7 @@ DEFAULT_DB = Path("data/db/chatkb.sqlite")
 DEFAULT_EXPECTED_LABELS = Path("tests/fixtures/telegram_expected_labels.json")
 DEFAULT_REPORT = Path("data/reports/research-report.html")
 DEFAULT_SITE_DIR = Path("data/reports/research-site")
+DEFAULT_PROJECT_PROFILE = Path("data/reports/project-profile.json")
 DEFAULT_PROJECT_NAME = "Market Pain Miner"
 DEFAULT_PROJECT_SUMMARY = (
     "Локальная база знаний из Telegram-чата: боли, решения, инсайты "
@@ -51,6 +52,43 @@ PROJECT_PROFILE_LIST_FIELDS = (
     "design_preferences",
     "next_questions",
 )
+PROJECT_PROFILE_TEMPLATE = {
+    "project_name": "Market Pain Miner",
+    "project_summary": "Локальный research bot для privacy-safe WB/Ozon-гипотез.",
+    "user": "owner",
+    "target_segments": [
+        "WB/Ozon seller",
+        "marketplace manager",
+    ],
+    "focus_themes": [
+        "reviews",
+        "penalties",
+        "automation",
+    ],
+    "avoid_themes": [
+        "raw personal data",
+        "private chat attribution",
+    ],
+    "offer_types": [
+        "audit report",
+        "telegram alert",
+        "local dashboard",
+    ],
+    "decision_criteria": [
+        "repeated pain with evidence aliases",
+        "clear manual workaround",
+        "seller or manager can pay",
+    ],
+    "design_preferences": [
+        "local-first",
+        "privacy-safe",
+        "evidence-backed",
+    ],
+    "next_questions": [
+        "Which evidence aliases should be reviewed first?",
+        "What can be validated without exposing raw chat data?",
+    ],
+}
 MAX_LATEST = 100
 CONTROL_CHARS_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]")
 MANUAL_CLASSIFIER_NAME = "manual_review"
@@ -348,6 +386,29 @@ def main() -> None:
         ),
     )
 
+    profile_template_parser = subparsers.add_parser(
+        "profile-template",
+        help="Create a privacy-safe JSON template for site --project-profile",
+    )
+    profile_template_parser.add_argument(
+        "--output",
+        default=str(DEFAULT_PROJECT_PROFILE),
+        help=f"Path to JSON profile template, default: {DEFAULT_PROJECT_PROFILE}",
+    )
+    profile_template_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite an existing local profile template file",
+    )
+    profile_template_parser.add_argument(
+        "--allow-external-profile",
+        action="store_true",
+        help=(
+            "Unsafe local-only: allow writing a project profile template outside "
+            "data/reports or tests/_tmp*.json"
+        ),
+    )
+
     stats_parser = subparsers.add_parser("stats", help="Show database stats")
     stats_parser.add_argument(
         "--latest",
@@ -468,6 +529,12 @@ def main() -> None:
                 ),
                 allow_external_db=args.allow_external_db,
                 allow_external_site=args.allow_external_site,
+            )
+        elif args.command == "profile-template":
+            run_profile_template(
+                Path(args.output),
+                force=args.force,
+                allow_external_profile=args.allow_external_profile,
             )
         elif args.command == "stats":
             run_stats(
@@ -1437,6 +1504,43 @@ def run_summary(
         },
         "quality_gaps": quality_gaps,
     }
+
+
+def run_profile_template(
+    output_path: Path = DEFAULT_PROJECT_PROFILE,
+    *,
+    force: bool = False,
+    allow_external_profile: bool = False,
+) -> dict[str, object]:
+    validate_project_profile_template_path(
+        output_path,
+        allow_external_profile=allow_external_profile,
+    )
+    if output_path.exists() and not force:
+        raise ValueError(
+            "Project profile template already exists. "
+            "Use --force to overwrite it intentionally."
+        )
+
+    payload = project_profile_template_payload()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    print("Project profile template created")
+    print(f"- path={terminal_safe(output_path)}")
+    print(f"- next=python -m app.cli site --project-profile {terminal_safe(output_path)}")
+    print("- privacy=fill this file locally; keep private notes in ignored paths")
+    return {
+        "path": terminal_safe(output_path),
+        "payload": payload,
+    }
+
+
+def project_profile_template_payload() -> dict[str, object]:
+    return json.loads(json.dumps(PROJECT_PROFILE_TEMPLATE, ensure_ascii=False))
 
 
 def load_project_profile(profile_path: Path | None) -> dict[str, object]:
@@ -3170,6 +3274,38 @@ def validate_site_dir_path(
         "Refusing to write a generated site outside data/reports by default. "
         "Use data/reports/, a tests/_tmp* fixture site, or pass "
         "--allow-external-site for explicit local-only external output."
+    )
+
+
+def validate_project_profile_template_path(
+    output_path: Path,
+    *,
+    allow_external_profile: bool = False,
+) -> None:
+    if output_path.suffix.lower() != ".json":
+        raise ValueError("Project profile template output path must end with .json")
+
+    if allow_external_profile:
+        return
+
+    resolved_path = output_path.resolve()
+    try:
+        resolved_path.relative_to(Path("data/reports").resolve())
+        return
+    except ValueError:
+        pass
+
+    try:
+        resolved_path.relative_to(Path("tests").resolve())
+        if output_path.name.startswith("_tmp"):
+            return
+    except ValueError:
+        pass
+
+    raise ValueError(
+        "Refusing to write a project profile template outside data/reports by default. "
+        "Use data/reports/, a tests/_tmp*.json fixture profile, or pass "
+        "--allow-external-profile for explicit local-only external output."
     )
 
 

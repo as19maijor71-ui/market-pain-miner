@@ -63,11 +63,13 @@ data/db/chatkb.sqlite
 ```powershell
 $Export = "data/exports/pilot-001/result.json"
 $Db = "data/db/pilot-001.sqlite"
+$Profile = "data/reports/project-profile.json"
 
 python -m app.cli --db $Db import $Export
 python -m app.cli --db $Db classify
+python -m app.cli profile-template --output $Profile
 python -m app.cli --db $Db summary --limit 10
-python -m app.cli --db $Db site --output-dir data/reports/pilot-001-site --limit 20
+python -m app.cli --db $Db site --output-dir data/reports/pilot-001-site --limit 20 --project-profile $Profile
 python -m app.cli --db $Db review --limit 20
 python -m app.cli --db $Db opportunities --limit 10
 ```
@@ -92,10 +94,16 @@ python -m app.cli --db data/db/pilot-001.sqlite site --output-dir data/reports/p
 локальный JSON-профиль проекта:
 
 ```powershell
+python -m app.cli profile-template --output data/reports/project-profile.json
+
 python -m app.cli --db data/db/pilot-001.sqlite site `
   --output-dir data/reports/pilot-001-site `
   --project-profile data/reports/project-profile.json
 ```
+
+`profile-template` создает privacy-safe placeholder JSON и не читает Telegram
+export или SQLite. Если файл уже заполнен локальными заметками, команда не
+перезапишет его без явного `--force`.
 
 Минимальная структура `project-profile.json`:
 

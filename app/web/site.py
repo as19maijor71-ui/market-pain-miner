@@ -215,6 +215,7 @@ def _for_you_page(site_payload: dict[str, Any]) -> str:
         '<div><h2>Фокус Проекта</h2><div id="fit" class="grid cards"></div></div>'
         '<div><h2>Совпадения С Фокусом</h2><div id="matches" class="grid cards"></div></div>'
         '<div><h2>Следующая Проверка</h2><div id="review" class="grid cards"></div></div>'
+        '<div><h2>Команды Review</h2><div id="commands" class="grid cards"></div></div>'
         '<div><h2>Предупреждения Профиля</h2><div id="warnings" class="grid cards"></div></div>'
         '<div><h2>Сделать Сейчас</h2><div id="now" class="grid cards"></div></div>'
         '<div><h2>Кого Проверить</h2><div id="people" class="grid cards"></div></div>'
@@ -258,6 +259,7 @@ const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;'
 const list = items => `<ul>${(items || []).map(item => `<li>${esc(item)}</li>`).join('')}</ul>`;
 const card = (title, body, meta='') => `<article class="card"><h3>${esc(title)}</h3>${meta ? `<p class="meta">${esc(meta)}</p>` : ''}${body}</article>`;
 const inline = items => (items || []).length ? esc((items || []).join(', ')) : 'none';
+const code = value => `<pre class="command"><code>${esc(value || '')}</code></pre>`;
 fetch('data/for-you.json').then(r => r.json()).then(data => {
   document.getElementById('fit').innerHTML = (data.project_fit || []).map(item =>
     card(item.title, list(item.items) + `<p>${esc(item.why || '')}</p>`)
@@ -268,6 +270,9 @@ fetch('data/for-you.json').then(r => r.json()).then(data => {
   document.getElementById('review').innerHTML = (data.recommended_next_review || []).map(item =>
     card(item.title, `<p>${esc(item.action || '')}</p><p>${esc(item.reason || '')}</p><p><strong>Evidence:</strong> ${inline(item.evidence_aliases)}</p>`, item.priority || 'P1')
   ).join('') || '<p class="empty">Нет следующих действий.</p>';
+  document.getElementById('commands').innerHTML = (data.review_commands || []).map(item =>
+    card(item.title, `<p>${esc(item.reason || '')}</p><p><strong>Evidence alias:</strong> ${esc(item.evidence_alias || 'none')}</p><p><strong>Suggested:</strong> ${esc(item.suggested_category || 'unknown')} · ${inline(item.suggested_topics)}</p><p><strong>Command:</strong></p>${code(item.command)}<p><strong>Follow-up:</strong></p>${code(item.followup_command)}`, item.priority || 'P1')
+  ).join('') || '<p class="empty">Нет команд review для profile matches.</p>';
   document.getElementById('warnings').innerHTML = (data.profile_warnings || []).map(item =>
     card(item.code, `<p>${esc(item.message || '')}</p><p><strong>Темы:</strong> ${inline(item.themes)}</p><p><strong>Evidence:</strong> ${inline(item.evidence_aliases)}</p>`, item.priority || 'P1')
   ).join('') || '<p class="empty">Нет предупреждений профиля.</p>';
@@ -342,6 +347,8 @@ h1 span { background: var(--accent); padding: 0 8px; }
 .toolbar { display: flex; gap: 12px; align-items: center; }
 input[type=search] { width: min(520px, 100%); height: 42px; border: 1px solid var(--line); border-radius: 8px; padding: 0 12px; font: inherit; background: var(--card); }
 .stack { display: grid; gap: 34px; }
+pre.command { margin: 6px 0 12px; padding: 10px; overflow-x: auto; border-radius: 8px; background: #111111; color: #fffdf8; font-size: 13px; white-space: pre-wrap; word-break: break-word; }
+code { font-family: Consolas, Monaco, 'Courier New', monospace; }
 ul { margin: 0; padding-left: 18px; }
 li + li { margin-top: 6px; }
 .principles { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 18px; }

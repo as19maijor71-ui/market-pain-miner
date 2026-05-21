@@ -213,6 +213,7 @@ def test_project_profile_focus_themes_create_profile_matches(capsys) -> None:
 
     assert "Совпадения С Фокусом" in for_you_html
     assert "Следующая Проверка" in for_you_html
+    assert "Команды Review" in for_you_html
     assert for_you["profile_matches"]
     assert any(
         item["type"] == "opportunity" and item["matched_themes"] == ["stock"]
@@ -230,6 +231,81 @@ def test_project_profile_focus_themes_create_profile_matches(capsys) -> None:
         for item in for_you["profile_matches"]
         for alias in item["evidence_aliases"]
     )
+    assert for_you["review_commands"]
+    review_command = for_you["review_commands"][0]
+    assert review_command["evidence_alias"].startswith("chat")
+    assert review_command["evidence_alias"] in review_command["command"]
+    assert review_command["suggested_category"] == "pain"
+    assert review_command["suggested_topics"] == ["stock"]
+    assert "--set-label" in review_command["command"]
+    assert " pain" in review_command["command"]
+    assert "--topics stock" in review_command["command"]
+    assert "<local-db-path>" in review_command["command"]
+    assert "<local-db-path>" in review_command["followup_command"]
+    assert "<local-site-dir>" in review_command["followup_command"]
+    assert "<local-profile-path>" in review_command["followup_command"]
+
+    serialized_commands = json.dumps(for_you["review_commands"], ensure_ascii=False)
+    assert "Synthetic Solutions Fixture" not in serialized_commands
+    assert "synthetic_participant" not in serialized_commands
+    assert "3000000000" not in serialized_commands
+    assert "https://sellerstock.test" not in serialized_commands
+    assert "sellerstock.test" not in serialized_commands
+    assert "@StockPilot" not in serialized_commands
+    assert "Не могу свести" not in serialized_commands
+    assert "Рекомендую бот" not in serialized_commands
+
+
+def test_static_site_cli_command_hints_feed_review_commands(capsys) -> None:
+    profile = {
+        "project_name": "Command Pilot",
+        "project_summary": "Локальная проверка command hints.",
+        "focus_themes": ["stock"],
+        "avoid_themes": [],
+    }
+    with (
+        temporary_db_path() as db_path,
+        temporary_site_dir() as site_dir,
+        temporary_profile_path(profile) as profile_path,
+    ):
+        run_import(FIXTURE, db_path)
+        run_classify(db_path)
+        capsys.readouterr()
+
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "app.cli",
+                "--db",
+                str(db_path),
+                "site",
+                "--output-dir",
+                str(site_dir),
+                "--project-profile",
+                str(profile_path),
+                "--db-command-path",
+                "data/db/pilot-001.sqlite",
+                "--site-command-path",
+                "data/reports/pilot-001-site",
+                "--profile-command-path",
+                "data/reports/project-profile.json",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        for_you = json.loads((site_dir / "data/for-you.json").read_text(encoding="utf-8"))
+
+    assert for_you["review_commands"]
+    review_command = for_you["review_commands"][0]
+    assert "data/db/pilot-001.sqlite" in review_command["command"]
+    assert "data/db/pilot-001.sqlite" in review_command["followup_command"]
+    assert "data/reports/pilot-001-site" in review_command["followup_command"]
+    assert "data/reports/project-profile.json" in review_command["followup_command"]
+    assert "<local-db-path>" not in review_command["command"]
+    assert "<local-site-dir>" not in review_command["followup_command"]
+    assert "<local-profile-path>" not in review_command["followup_command"]
 
 
 def test_project_profile_avoid_themes_warn_and_lower_priority(capsys) -> None:
@@ -276,6 +352,7 @@ def test_empty_project_profile_keeps_static_site_flow(capsys) -> None:
 
     assert for_you["project_profile"]["focus_themes"] == []
     assert for_you["profile_matches"] == []
+    assert for_you["review_commands"] == []
     assert any(
         item["code"] == "focus_themes_empty"
         for item in for_you["profile_warnings"]
@@ -311,15 +388,17 @@ def test_profile_matching_output_stays_privacy_safe(capsys) -> None:
             json.loads((site_dir / "data/for-you.json").read_text(encoding="utf-8")),
             ensure_ascii=False,
         )
+        html = (site_dir / "for-you.html").read_text(encoding="utf-8")
+        combined = serialized + "\n" + html
 
-    assert "Synthetic Solutions Fixture" not in serialized
-    assert "synthetic_participant" not in serialized
-    assert "3000000000" not in serialized
-    assert "https://sellerstock.test" not in serialized
-    assert "sellerstock.test" not in serialized
-    assert "@StockPilot" not in serialized
-    assert "Не могу свести" not in serialized
-    assert "Рекомендую бот" not in serialized
+    assert "Synthetic Solutions Fixture" not in combined
+    assert "synthetic_participant" not in combined
+    assert "3000000000" not in combined
+    assert "https://sellerstock.test" not in combined
+    assert "sellerstock.test" not in combined
+    assert "@StockPilot" not in combined
+    assert "Не могу свести" not in combined
+    assert "Рекомендую бот" not in combined
 
 
 def test_project_profile_rejects_invalid_json_shape() -> None:

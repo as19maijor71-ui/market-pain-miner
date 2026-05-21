@@ -97,6 +97,13 @@ python -m app.cli --db $Db review --set-label chat1:42 pain --topics stock,autom
 python -m app.cli --db $Db site --output-dir $Site --limit 20
 ```
 
+После генерации сайта открыть `for-you.html` и использовать блок “Команды
+Review”: он показывает privacy-safe `review --set-label` команды по aliases и
+follow-up команду для перегенерации сайта. Если нужны реальные локальные пути
+в copyable commands, генерировать сайт с `--db-command-path`,
+`--site-command-path` и `--profile-command-path`; эти значения не читать как
+данные, а только печатать в generated commands.
+
 ## Cleanup
 
 Проверить tracked changes и ignored private paths:

@@ -35,6 +35,9 @@ DEFAULT_EXPECTED_LABELS = Path("tests/fixtures/telegram_expected_labels.json")
 DEFAULT_REPORT = Path("data/reports/research-report.html")
 DEFAULT_SITE_DIR = Path("data/reports/research-site")
 DEFAULT_PROJECT_PROFILE = Path("data/reports/project-profile.json")
+DEFAULT_DB_COMMAND_PATH = "<local-db-path>"
+DEFAULT_SITE_COMMAND_PATH = "<local-site-dir>"
+DEFAULT_PROFILE_COMMAND_PATH = "<local-profile-path>"
 DEFAULT_PROJECT_NAME = "Market Pain Miner"
 DEFAULT_PROJECT_SUMMARY = (
     "Локальная база знаний из Telegram-чата: боли, решения, инсайты "
@@ -102,6 +105,7 @@ HIGH_RISK_MARKERS = (
     "uncertainty",
     "policy",
 )
+MAX_REVIEW_COMMANDS = 7
 
 
 @dataclass(frozen=True)
@@ -378,6 +382,30 @@ def main() -> None:
         ),
     )
     site_parser.add_argument(
+        "--db-command-path",
+        default=DEFAULT_DB_COMMAND_PATH,
+        help=(
+            "Privacy-safe DB path string printed only in generated site "
+            f"review commands, default: {DEFAULT_DB_COMMAND_PATH}"
+        ),
+    )
+    site_parser.add_argument(
+        "--site-command-path",
+        default=DEFAULT_SITE_COMMAND_PATH,
+        help=(
+            "Privacy-safe site output path string printed only in generated "
+            f"follow-up commands, default: {DEFAULT_SITE_COMMAND_PATH}"
+        ),
+    )
+    site_parser.add_argument(
+        "--profile-command-path",
+        default=DEFAULT_PROFILE_COMMAND_PATH,
+        help=(
+            "Privacy-safe project profile path string printed only in generated "
+            f"follow-up commands, default: {DEFAULT_PROFILE_COMMAND_PATH}"
+        ),
+    )
+    site_parser.add_argument(
         "--allow-external-site",
         action="store_true",
         help=(
@@ -527,6 +555,9 @@ def main() -> None:
                 project_profile_path=(
                     Path(args.project_profile) if args.project_profile else None
                 ),
+                db_command_path=args.db_command_path,
+                site_command_path=args.site_command_path,
+                profile_command_path=args.profile_command_path,
                 allow_external_db=args.allow_external_db,
                 allow_external_site=args.allow_external_site,
             )
@@ -1650,6 +1681,9 @@ def run_site(
     project_name: str = DEFAULT_PROJECT_NAME,
     project_summary: str = DEFAULT_PROJECT_SUMMARY,
     project_profile_path: Path | None = None,
+    db_command_path: str = DEFAULT_DB_COMMAND_PATH,
+    site_command_path: str = DEFAULT_SITE_COMMAND_PATH,
+    profile_command_path: str = DEFAULT_PROFILE_COMMAND_PATH,
     allow_external_db: bool = False,
     allow_external_site: bool = False,
 ) -> dict[str, object]:
@@ -1662,6 +1696,9 @@ def run_site(
         project_name=project_name,
         project_summary=project_summary,
         project_profile=project_profile,
+        db_command_path=db_command_path,
+        site_command_path=site_command_path,
+        profile_command_path=profile_command_path,
         allow_external_db=allow_external_db,
     )
     write_static_site(payload, output_dir)
@@ -1694,6 +1731,9 @@ def build_site_payload(
     project_name: str,
     project_summary: str,
     project_profile: dict[str, object] | None = None,
+    db_command_path: str = DEFAULT_DB_COMMAND_PATH,
+    site_command_path: str = DEFAULT_SITE_COMMAND_PATH,
+    profile_command_path: str = DEFAULT_PROFILE_COMMAND_PATH,
     allow_external_db: bool = False,
 ) -> dict[str, object]:
     if limit <= 0:
@@ -1744,6 +1784,11 @@ def build_site_payload(
         participants=participants,
         niches=niches,
         insights=insights,
+        command_hints=_site_command_hints(
+            db_command_path=db_command_path,
+            site_command_path=site_command_path,
+            profile_command_path=profile_command_path,
+        ),
     )
 
     return {
@@ -2028,6 +2073,7 @@ def _site_for_you(
     participants: list[dict[str, object]],
     niches: list[dict[str, object]],
     insights: list[dict[str, object]],
+    command_hints: dict[str, str],
 ) -> dict[str, object]:
     opportunities = list(summary.get("opportunities", []))
     quality_gaps = list(summary.get("quality_gaps", []))
@@ -2226,6 +2272,11 @@ def _site_for_you(
         "project_fit": project_fit,
         "profile_matches": profile_analysis["profile_matches"],
         "recommended_next_review": profile_analysis["recommended_next_review"],
+        "review_commands": _review_commands_for_matches(
+            matches=profile_analysis["profile_matches"],
+            focus_themes=focus_themes,
+            command_hints=command_hints,
+        ),
         "profile_warnings": profile_analysis["profile_warnings"],
         "now": now,
         "people_to_contact": people_to_contact,
@@ -2287,6 +2338,10 @@ def _site_profile_analysis(
             "id": candidate["id"],
             "title": candidate["title"],
             "matched_themes": matched_themes,
+            "matched_topic": _profile_match_topic(
+                matched_themes,
+                candidate.get("source_topics", []),
+            ),
             "avoid_themes": avoided_themes,
             "priority": _profile_match_priority(
                 str(candidate["type"]),
@@ -2298,6 +2353,8 @@ def _site_profile_analysis(
                 avoided_themes,
             ),
             "evidence_aliases": candidate["evidence_aliases"],
+            "source_category": candidate.get("source_category", ""),
+            "source_topics": candidate.get("source_topics", []),
             "_sort_group": candidate["sort_group"],
             "_sort_order": candidate["sort_order"],
         }
@@ -2337,6 +2394,7 @@ def _profile_candidates(
     candidates = []
     for index, item in enumerate(opportunities, start=1):
         cluster_topic = _topic_from_cluster_id(str(item.get("cluster_id", "")))
+        cluster_category = _category_from_cluster_id(str(item.get("cluster_id", "")))
         candidates.append(
             {
                 "type": "opportunity",
@@ -2356,12 +2414,15 @@ def _profile_candidates(
                 "evidence_aliases": _evidence_aliases(
                     item.get("evidence_message_ids", "")
                 ),
+                "source_category": cluster_category or "pain",
+                "source_topics": [cluster_topic] if cluster_topic else [],
                 "sort_group": 0,
                 "sort_order": index,
             }
         )
     for index, item in enumerate(niches, start=1):
         title = terminal_safe(item.get("title", f"topic{index}"))
+        source_topics = [title] if title in PAIN_TOPICS else []
         candidates.append(
             {
                 "type": "theme",
@@ -2374,11 +2435,14 @@ def _profile_candidates(
                 "evidence_aliases": _evidence_aliases(
                     item.get("evidence_message_ids", "")
                 ),
+                "source_category": "pain" if source_topics else "insight",
+                "source_topics": source_topics,
                 "sort_group": 1,
                 "sort_order": index,
             }
         )
     for index, item in enumerate(insights, start=1):
+        source_category = terminal_safe(item.get("category", "insight"))
         candidates.append(
             {
                 "type": "insight",
@@ -2390,6 +2454,10 @@ def _profile_candidates(
                     item.get("tags", []),
                 ),
                 "evidence_aliases": _evidence_aliases(item.get("message_id", "")),
+                "source_category": source_category,
+                "source_topics": [
+                    topic for topic in item.get("tags", []) if topic in PAIN_TOPICS
+                ],
                 "sort_group": 2,
                 "sort_order": index,
             }
@@ -2431,10 +2499,30 @@ def _matched_profile_themes(themes: list[str], terms: set[str]) -> list[str]:
     return matched
 
 
+def _profile_match_topic(
+    matched_themes: list[str],
+    source_topics: object,
+) -> str:
+    matched_topics = set(_controlled_review_topics(matched_themes))
+    for topic in _controlled_review_topics(source_topics):
+        if not matched_topics or topic in matched_topics:
+            return topic
+    for topic in _controlled_review_topics(matched_themes):
+        return topic
+    return ""
+
+
 def _topic_from_cluster_id(cluster_id: str) -> str:
     parts = cluster_id.split(":")
     if len(parts) >= 3:
         return parts[1]
+    return ""
+
+
+def _category_from_cluster_id(cluster_id: str) -> str:
+    parts = cluster_id.split(":")
+    if len(parts) >= 3 and parts[0] in MESSAGE_CATEGORIES:
+        return parts[0]
     return ""
 
 
@@ -2690,6 +2778,144 @@ def _review_action_for_match(source_type: str) -> str:
     if source_type == "insight":
         return "Открыть alias инсайта и вручную решить, превращается ли он в проверяемую гипотезу."
     return "Открыть aliases и проверить вывод вручную."
+
+
+def _site_command_hints(
+    *,
+    db_command_path: str,
+    site_command_path: str,
+    profile_command_path: str,
+) -> dict[str, str]:
+    return {
+        "db": _command_hint(db_command_path, DEFAULT_DB_COMMAND_PATH),
+        "site": _command_hint(site_command_path, DEFAULT_SITE_COMMAND_PATH),
+        "profile": _command_hint(
+            profile_command_path,
+            DEFAULT_PROFILE_COMMAND_PATH,
+        ),
+    }
+
+
+def _command_hint(value: object, default: str) -> str:
+    text = terminal_safe(value).strip()
+    return text or default
+
+
+def _review_commands_for_matches(
+    *,
+    matches: list[dict[str, object]],
+    focus_themes: list[str],
+    command_hints: dict[str, str],
+) -> list[dict[str, object]]:
+    commands = []
+    seen: set[tuple[str, str, str]] = set()
+    db_path = _command_hint(command_hints.get("db", ""), DEFAULT_DB_COMMAND_PATH)
+    site_path = _command_hint(
+        command_hints.get("site", ""),
+        DEFAULT_SITE_COMMAND_PATH,
+    )
+    profile_path = _command_hint(
+        command_hints.get("profile", ""),
+        DEFAULT_PROFILE_COMMAND_PATH,
+    )
+    followup_command = (
+        "python -m app.cli "
+        f"--db {db_path} "
+        "site "
+        f"--output-dir {site_path} "
+        f"--project-profile {profile_path}"
+    )
+
+    for match in matches:
+        category = _suggested_review_category(match)
+        topics = _suggested_review_topics(
+            focus_themes=focus_themes,
+            match=match,
+        )
+        topic_arg = f" --topics {','.join(topics)}" if topics else ""
+        for evidence_alias in match.get("evidence_aliases", []):
+            alias = terminal_safe(evidence_alias).strip()
+            if not alias:
+                continue
+            dedupe_key = (alias, category, ",".join(topics))
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            command = (
+                "python -m app.cli "
+                f"--db {db_path} "
+                "review "
+                f"--set-label {alias} {category}"
+                f"{topic_arg}"
+            )
+            commands.append(
+                {
+                    "title": terminal_safe(f"Разметить {alias}: {match.get('title', '')}"),
+                    "reason": terminal_safe(match.get("reason", "")),
+                    "evidence_alias": alias,
+                    "suggested_category": category,
+                    "suggested_topics": topics,
+                    "command": terminal_safe(command),
+                    "followup_command": terminal_safe(followup_command),
+                    "priority": terminal_safe(match.get("priority", "P1")),
+                }
+            )
+            if len(commands) >= MAX_REVIEW_COMMANDS:
+                return commands
+    return commands
+
+
+def _suggested_review_category(match: dict[str, object]) -> str:
+    source_type = str(match.get("type", ""))
+    if source_type in {"opportunity", "theme"}:
+        return "pain"
+
+    source_category = terminal_safe(match.get("source_category", "")).strip()
+    if source_category == "question":
+        return "question"
+    if source_category in {"insight", "case"}:
+        return "insight"
+    if source_category in MESSAGE_CATEGORIES:
+        return source_category
+    return "insight"
+
+
+def _suggested_review_topics(
+    *,
+    focus_themes: list[str],
+    match: dict[str, object],
+) -> list[str]:
+    return _controlled_review_topics(
+        focus_themes,
+        match.get("matched_topic", ""),
+    )
+
+
+def _controlled_review_topics(*groups: object) -> list[str]:
+    topics = []
+    seen = set()
+    for group in groups:
+        for value in _iter_review_topic_values(group):
+            topic = terminal_safe(value).strip().lower().replace(" ", "_")
+            if topic not in PAIN_TOPICS or topic in seen:
+                continue
+            seen.add(topic)
+            topics.append(topic)
+    return topics
+
+
+def _iter_review_topic_values(value: object) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, str):
+        return (value,)
+    if isinstance(value, (list, tuple, set)):
+        return tuple(
+            item
+            for group_item in value
+            for item in _iter_review_topic_values(group_item)
+        )
+    return (str(value),)
 
 
 def _profile_ordered_opportunities(

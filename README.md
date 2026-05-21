@@ -101,6 +101,19 @@ python -m app.cli --db data/db/pilot-001.sqlite site `
   --project-profile data/reports/project-profile.json
 ```
 
+Чтобы `for-you.html` и `data/for-you.json` показывали готовые команды review
+с понятными локальными путями, передайте command hints. Эти значения только
+печатаются в generated commands и не используются для чтения базы или профиля:
+
+```powershell
+python -m app.cli --db data/db/pilot-001.sqlite site `
+  --output-dir data/reports/pilot-001-site `
+  --project-profile data/reports/project-profile.json `
+  --db-command-path data/db/pilot-001.sqlite `
+  --site-command-path data/reports/pilot-001-site `
+  --profile-command-path data/reports/project-profile.json
+```
+
 `profile-template` создает privacy-safe placeholder JSON и не читает Telegram
 export или SQLite. Если файл уже заполнен локальными заметками, команда не
 перезапишет его без явного `--force`.
@@ -123,8 +136,10 @@ export или SQLite. Если файл уже заполнен локальны
 `focus_themes` детерминированно сопоставляются с topics, opportunity cards и
 insights. Совпадения появляются в `for-you.html` в блоке “Совпадения С
 Фокусом”, а блок “Следующая Проверка” предлагает 3-7 действий для ручного
-review. `avoid_themes` не удаляют evidence aliases, но добавляют warnings и
-понижают priority таких рекомендаций.
+review. Блок “Команды Review” дает privacy-safe `review --set-label` команды
+по evidence aliases и follow-up команду для перегенерации сайта. `avoid_themes`
+не удаляют evidence aliases, но добавляют warnings и понижают priority таких
+рекомендаций.
 
 Профиль лучше хранить в ignored-папке вроде `data/reports/`, если в нем есть
 частные продуктовые заметки.

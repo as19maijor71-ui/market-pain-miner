@@ -113,11 +113,18 @@ export или SQLite. Если файл уже заполнен локальны
   "project_summary": "Локальный research bot для WB/Ozon-гипотез.",
   "target_segments": ["WB/Ozon seller", "marketplace manager"],
   "focus_themes": ["reviews", "penalties", "automation"],
+  "avoid_themes": ["raw personal data", "private chat attribution"],
   "offer_types": ["audit report", "telegram alert"],
   "decision_criteria": ["visible repeated pain", "clear willingness to pay"],
   "next_questions": ["Какие evidence IDs открыть первыми?"]
 }
 ```
+
+`focus_themes` детерминированно сопоставляются с topics, opportunity cards и
+insights. Совпадения появляются в `for-you.html` в блоке “Совпадения С
+Фокусом”, а блок “Следующая Проверка” предлагает 3-7 действий для ручного
+review. `avoid_themes` не удаляют evidence aliases, но добавляют warnings и
+понижают priority таких рекомендаций.
 
 Профиль лучше хранить в ignored-папке вроде `data/reports/`, если в нем есть
 частные продуктовые заметки.

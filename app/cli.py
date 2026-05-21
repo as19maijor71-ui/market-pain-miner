@@ -1743,6 +1743,7 @@ def build_site_payload(
         summary=summary,
         participants=participants,
         niches=niches,
+        insights=insights,
     )
 
     return {
@@ -2026,6 +2027,7 @@ def _site_for_you(
     summary: dict[str, object],
     participants: list[dict[str, object]],
     niches: list[dict[str, object]],
+    insights: list[dict[str, object]],
 ) -> dict[str, object]:
     opportunities = list(summary.get("opportunities", []))
     quality_gaps = list(summary.get("quality_gaps", []))
@@ -2036,14 +2038,42 @@ def _site_for_you(
     decision_criteria = _profile_values(project_profile, "decision_criteria")
     design_preferences = _profile_values(project_profile, "design_preferences")
     next_questions = _profile_values(project_profile, "next_questions")
+    profile_analysis = _site_profile_analysis(
+        focus_themes=focus_themes,
+        avoid_themes=avoid_themes,
+        opportunities=opportunities,
+        niches=niches,
+        insights=insights,
+        next_questions=next_questions,
+        quality_gaps=quality_gaps,
+    )
+    opportunity_state = profile_analysis["opportunity_state"]
+    ordered_opportunities = _profile_ordered_opportunities(
+        opportunities,
+        opportunity_state,
+        has_focus=bool(focus_themes),
+    )
 
     now = []
-    for index, item in enumerate(opportunities[:5], start=1):
+    for index, item in enumerate(ordered_opportunities[:5], start=1):
+        item_profile = opportunity_state.get(str(item.get("opportunity_id", "")), {})
         actions = [
             f"Открыть evidence IDs: {item['evidence_message_ids']}",
             f"Проверить MVP: {item['first_mvp']}",
             "Решить GO / PIVOT / STOP до разработки продукта.",
         ]
+        matched_themes = list(item_profile.get("matched_themes", []))
+        avoided_themes = list(item_profile.get("avoid_themes", []))
+        if matched_themes:
+            actions.append(
+                "Profile match: сверить evidence с focus_themes "
+                f"{_join_profile_values(matched_themes)}."
+            )
+        if avoided_themes:
+            actions.append(
+                "Avoid warning: тема попала в avoid_themes "
+                f"{_join_profile_values(avoided_themes)}; evidence не удалять."
+            )
         if focus_themes:
             actions.append(
                 "Сверить гипотезу с фокус-темами: "
@@ -2059,16 +2089,24 @@ def _site_for_you(
                 "Оценить по критериям владельца: "
                 f"{_join_profile_values(decision_criteria)}."
             )
+        profile_reason = _profile_now_reason(item_profile)
+        why = (
+            f"Score={item['score']}, verdict={item['verdict']}, "
+            f"payment_reason={item['payment_reason']}."
+        )
+        if profile_reason:
+            why = f"{why} {profile_reason}"
         now.append(
             {
                 "title": f"Проверить гипотезу {item['opportunity_id']}",
                 "type": "opportunity",
-                "priority": "P0" if index == 1 else "P1",
-                "actions": actions,
-                "why": (
-                    f"Score={item['score']}, verdict={item['verdict']}, "
-                    f"payment_reason={item['payment_reason']}."
+                "priority": _profile_now_priority(
+                    index,
+                    item_profile,
+                    has_focus=bool(focus_themes),
                 ),
+                "actions": actions,
+                "why": why,
             }
         )
     if not now:
@@ -2186,6 +2224,9 @@ def _site_for_you(
             "next_questions": next_questions,
         },
         "project_fit": project_fit,
+        "profile_matches": profile_analysis["profile_matches"],
+        "recommended_next_review": profile_analysis["recommended_next_review"],
+        "profile_warnings": profile_analysis["profile_warnings"],
         "now": now,
         "people_to_contact": people_to_contact,
         "to_apply": to_apply,
@@ -2202,6 +2243,539 @@ def _site_for_you(
             }
         ],
     }
+
+
+def _site_profile_analysis(
+    *,
+    focus_themes: list[str],
+    avoid_themes: list[str],
+    opportunities: list[dict[str, object]],
+    niches: list[dict[str, object]],
+    insights: list[dict[str, object]],
+    next_questions: list[str],
+    quality_gaps: list[object],
+) -> dict[str, object]:
+    candidates = _profile_candidates(
+        opportunities=opportunities,
+        niches=niches,
+        insights=insights,
+    )
+    matches = []
+    avoid_candidates = []
+    opportunity_state: dict[str, dict[str, object]] = {}
+
+    for candidate in candidates:
+        matched_themes = _matched_profile_themes(
+            focus_themes,
+            candidate["terms"],
+        )
+        avoided_themes = _matched_profile_themes(
+            avoid_themes,
+            candidate["terms"],
+        )
+        if candidate["type"] == "opportunity":
+            opportunity_state[str(candidate["id"])] = {
+                "matched_themes": matched_themes,
+                "avoid_themes": avoided_themes,
+            }
+        if avoided_themes:
+            avoid_candidates.append({**candidate, "avoid_themes": avoided_themes})
+        if not matched_themes:
+            continue
+        match = {
+            "type": candidate["type"],
+            "id": candidate["id"],
+            "title": candidate["title"],
+            "matched_themes": matched_themes,
+            "avoid_themes": avoided_themes,
+            "priority": _profile_match_priority(
+                str(candidate["type"]),
+                avoided_themes,
+            ),
+            "reason": _profile_match_reason(
+                str(candidate["type"]),
+                matched_themes,
+                avoided_themes,
+            ),
+            "evidence_aliases": candidate["evidence_aliases"],
+            "_sort_group": candidate["sort_group"],
+            "_sort_order": candidate["sort_order"],
+        }
+        matches.append(match)
+
+    matches.sort(key=_profile_match_sort_key)
+    public_matches = [
+        {key: value for key, value in match.items() if not key.startswith("_")}
+        for match in matches
+    ]
+    warnings = _profile_warnings(
+        focus_themes=focus_themes,
+        matches=public_matches,
+        avoid_candidates=avoid_candidates,
+    )
+    return {
+        "profile_matches": public_matches,
+        "recommended_next_review": _recommended_next_review(
+            matches=public_matches,
+            warnings=warnings,
+            focus_themes=focus_themes,
+            next_questions=next_questions,
+            opportunities=opportunities,
+            quality_gaps=quality_gaps,
+        ),
+        "profile_warnings": warnings,
+        "opportunity_state": opportunity_state,
+    }
+
+
+def _profile_candidates(
+    *,
+    opportunities: list[dict[str, object]],
+    niches: list[dict[str, object]],
+    insights: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    candidates = []
+    for index, item in enumerate(opportunities, start=1):
+        cluster_topic = _topic_from_cluster_id(str(item.get("cluster_id", "")))
+        candidates.append(
+            {
+                "type": "opportunity",
+                "id": terminal_safe(item.get("opportunity_id", f"opportunity{index}")),
+                "title": terminal_safe(
+                    f"Гипотеза {item.get('opportunity_id', f'opportunity{index}')}"
+                ),
+                "terms": _profile_match_terms(
+                    item.get("opportunity_id", ""),
+                    item.get("cluster_id", ""),
+                    cluster_topic,
+                    item.get("support_status", ""),
+                    item.get("verdict", ""),
+                    item.get("first_mvp", ""),
+                    item.get("payment_reason", ""),
+                ),
+                "evidence_aliases": _evidence_aliases(
+                    item.get("evidence_message_ids", "")
+                ),
+                "sort_group": 0,
+                "sort_order": index,
+            }
+        )
+    for index, item in enumerate(niches, start=1):
+        title = terminal_safe(item.get("title", f"topic{index}"))
+        candidates.append(
+            {
+                "type": "theme",
+                "id": terminal_safe(item.get("id", f"topic{index}")),
+                "title": f"Тема {title}",
+                "terms": _profile_match_terms(
+                    title,
+                    item.get("categories", ""),
+                ),
+                "evidence_aliases": _evidence_aliases(
+                    item.get("evidence_message_ids", "")
+                ),
+                "sort_group": 1,
+                "sort_order": index,
+            }
+        )
+    for index, item in enumerate(insights, start=1):
+        candidates.append(
+            {
+                "type": "insight",
+                "id": terminal_safe(item.get("id", f"insight{index}")),
+                "title": terminal_safe(item.get("title", f"insight{index}")),
+                "terms": _profile_match_terms(
+                    item.get("category", ""),
+                    item.get("title", ""),
+                    item.get("tags", []),
+                ),
+                "evidence_aliases": _evidence_aliases(item.get("message_id", "")),
+                "sort_group": 2,
+                "sort_order": index,
+            }
+        )
+    return candidates
+
+
+def _profile_match_terms(*values: object) -> set[str]:
+    terms: set[str] = set()
+    for value in values:
+        if isinstance(value, (list, tuple, set)):
+            terms.update(_profile_match_terms(*value))
+            continue
+        text = terminal_safe(value).strip().lower()
+        if not text or text == "none":
+            continue
+        terms.add(text)
+        terms.add(text.replace(" ", "_"))
+        terms.add(text.replace("_", " "))
+        for token in re.split(r"[^0-9a-zа-яё]+", text):
+            if token and token != "none":
+                terms.add(token)
+    return terms
+
+
+def _matched_profile_themes(themes: list[str], terms: set[str]) -> list[str]:
+    matched = []
+    for theme in themes:
+        text = terminal_safe(theme).strip().lower()
+        if not text:
+            continue
+        variants = {
+            text,
+            text.replace(" ", "_"),
+            text.replace("_", " "),
+        }
+        if variants & terms:
+            matched.append(terminal_safe(theme))
+    return matched
+
+
+def _topic_from_cluster_id(cluster_id: str) -> str:
+    parts = cluster_id.split(":")
+    if len(parts) >= 3:
+        return parts[1]
+    return ""
+
+
+def _evidence_aliases(value: object) -> list[str]:
+    aliases = []
+    for item in str(value or "").split(","):
+        alias = terminal_safe(item).strip()
+        if alias and alias != "none":
+            aliases.append(alias)
+    return aliases
+
+
+def _profile_match_priority(source_type: str, avoided_themes: list[str]) -> str:
+    if avoided_themes:
+        return "P2"
+    if source_type == "opportunity":
+        return "P0"
+    return "P1"
+
+
+def _profile_match_reason(
+    source_type: str,
+    matched_themes: list[str],
+    avoided_themes: list[str],
+) -> str:
+    source_label = {
+        "opportunity": "opportunity",
+        "theme": "topic aggregate",
+        "insight": "insight",
+    }.get(source_type, source_type)
+    reason = (
+        f"{source_label} совпал с focus_themes: "
+        f"{_join_profile_values(matched_themes)}."
+    )
+    if avoided_themes:
+        reason += (
+            " Совпадение также попало в avoid_themes, поэтому priority снижен, "
+            "а evidence оставлен для ручной проверки."
+        )
+    return reason
+
+
+def _profile_match_sort_key(match: dict[str, object]) -> tuple[int, int, int, str]:
+    priority_rank = {"P0": 0, "P1": 1, "P2": 2}.get(str(match["priority"]), 9)
+    return (
+        priority_rank,
+        int(match["_sort_group"]),
+        int(match["_sort_order"]),
+        str(match["id"]),
+    )
+
+
+def _profile_warnings(
+    *,
+    focus_themes: list[str],
+    matches: list[dict[str, object]],
+    avoid_candidates: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    warnings = []
+    if not focus_themes:
+        warnings.append(
+            _profile_warning(
+                "focus_themes_empty",
+                "focus_themes пустые; профиль показан, но рекомендации не ранжируются по фокусу.",
+                priority="P1",
+            )
+        )
+
+    if avoid_candidates:
+        warnings.append(
+            _profile_warning(
+                "avoid_themes_detected",
+                "Найдены темы из avoid_themes; evidence не скрыт, но такие элементы требуют осторожного review.",
+                priority="P2",
+                themes=_unique_profile_values(
+                    theme
+                    for candidate in avoid_candidates
+                    for theme in candidate.get("avoid_themes", [])
+                ),
+                evidence_aliases=_merge_evidence_aliases(avoid_candidates),
+            )
+        )
+
+    if focus_themes and not matches:
+        warnings.append(
+            _profile_warning(
+                "no_matched_evidence",
+                "Ни одна topic/opportunity/insight не совпала с focus_themes.",
+                priority="P1",
+                themes=focus_themes,
+            )
+        )
+
+    if avoid_candidates and (
+        not matches or all(match.get("avoid_themes") for match in matches)
+    ):
+        warnings.append(
+            _profile_warning(
+                "all_matches_only_in_avoid_themes",
+                "Все найденные profile-сигналы относятся только к avoid_themes или пересекаются с ними.",
+                priority="P2",
+                themes=_unique_profile_values(
+                    theme
+                    for candidate in avoid_candidates
+                    for theme in candidate.get("avoid_themes", [])
+                ),
+                evidence_aliases=_merge_evidence_aliases(avoid_candidates),
+            )
+        )
+    return warnings
+
+
+def _profile_warning(
+    code: str,
+    message: str,
+    *,
+    priority: str,
+    themes: list[str] | None = None,
+    evidence_aliases: list[str] | None = None,
+) -> dict[str, object]:
+    return {
+        "code": code,
+        "message": message,
+        "priority": priority,
+        "themes": themes or [],
+        "evidence_aliases": evidence_aliases or [],
+    }
+
+
+def _recommended_next_review(
+    *,
+    matches: list[dict[str, object]],
+    warnings: list[dict[str, object]],
+    focus_themes: list[str],
+    next_questions: list[str],
+    opportunities: list[dict[str, object]],
+    quality_gaps: list[object],
+) -> list[dict[str, object]]:
+    actions = []
+    for match in matches[:5]:
+        actions.append(
+            {
+                "title": f"Проверить {match['title']}",
+                "priority": match.get("priority", "P1"),
+                "action": _review_action_for_match(str(match.get("type", ""))),
+                "reason": match.get("reason", ""),
+                "evidence_aliases": match.get("evidence_aliases", []),
+            }
+        )
+
+    for question in next_questions[:2]:
+        actions.append(
+            {
+                "title": "Ответить на вопрос из project profile",
+                "priority": "P1",
+                "action": terminal_safe(question),
+                "reason": "Вопрос добавлен владельцем проекта и должен быть закрыт после просмотра evidence.",
+                "evidence_aliases": [],
+            }
+        )
+
+    if not focus_themes:
+        actions.append(
+            {
+                "title": "Заполнить focus_themes",
+                "priority": "P0",
+                "action": "Добавить 1-5 controlled marketplace themes в локальный project profile.",
+                "reason": "Без focus_themes сайт не может персонально ранжировать рекомендации.",
+                "evidence_aliases": [],
+            }
+        )
+
+    if any(warning.get("code") == "avoid_themes_detected" for warning in warnings):
+        warning = next(
+            item for item in warnings if item.get("code") == "avoid_themes_detected"
+        )
+        actions.append(
+            {
+                "title": "Разобрать avoid_themes",
+                "priority": "P2",
+                "action": "Проверить, почему эти evidence aliases попали в avoid_themes, и не превращать их в MVP без отдельного решения.",
+                "reason": warning.get("message", ""),
+                "evidence_aliases": warning.get("evidence_aliases", []),
+            }
+        )
+
+    for item in opportunities[:2]:
+        actions.append(
+            {
+                "title": f"Открыть evidence гипотезы {item.get('opportunity_id', 'unknown')}",
+                "priority": "P1",
+                "action": "Сверить aliases с кластерами и решить GO / PIVOT / STOP.",
+                "reason": (
+                    f"Score={terminal_safe(item.get('score', 'unknown'))}, "
+                    f"verdict={terminal_safe(item.get('verdict', 'unknown'))}."
+                ),
+                "evidence_aliases": _evidence_aliases(
+                    item.get("evidence_message_ids", "")
+                ),
+            }
+        )
+
+    for gap in quality_gaps[:2]:
+        actions.append(
+            {
+                "title": "Закрыть quality gap",
+                "priority": "P1",
+                "action": terminal_safe(gap),
+                "reason": "Качество анализа влияет на продуктовые выводы.",
+                "evidence_aliases": [],
+            }
+        )
+
+    fallbacks = [
+        {
+            "title": "Проверить top topics",
+            "priority": "P1",
+            "action": "Открыть раздел Темы и сверить первые evidence aliases.",
+            "reason": "Топики дают быстрый вход в повторяемые паттерны.",
+            "evidence_aliases": [],
+        },
+        {
+            "title": "Проверить review candidates",
+            "priority": "P1",
+            "action": "Запустить review и уточнить спорные labels перед продуктовым решением.",
+            "reason": "Manual review снижает риск ложной гипотезы.",
+            "evidence_aliases": [],
+        },
+        {
+            "title": "Перегенерировать сайт после review",
+            "priority": "P2",
+            "action": "После ручных правок labels снова выполнить site.",
+            "reason": "Рекомендации должны строиться из актуальных labels.",
+            "evidence_aliases": [],
+        },
+    ]
+    seen_titles = {str(item["title"]) for item in actions}
+    for fallback in fallbacks:
+        if len(actions) >= 3:
+            break
+        if fallback["title"] in seen_titles:
+            continue
+        actions.append(fallback)
+        seen_titles.add(fallback["title"])
+    return actions[:7]
+
+
+def _review_action_for_match(source_type: str) -> str:
+    if source_type == "opportunity":
+        return "Открыть aliases гипотезы, проверить MVP/payment_reason и принять GO / PIVOT / STOP."
+    if source_type == "theme":
+        return "Открыть aliases темы и проверить, есть ли повторяемая боль или готовое решение."
+    if source_type == "insight":
+        return "Открыть alias инсайта и вручную решить, превращается ли он в проверяемую гипотезу."
+    return "Открыть aliases и проверить вывод вручную."
+
+
+def _profile_ordered_opportunities(
+    opportunities: list[dict[str, object]],
+    opportunity_state: dict[str, dict[str, object]],
+    *,
+    has_focus: bool,
+) -> list[dict[str, object]]:
+    if not has_focus:
+        return opportunities
+
+    def sort_key(indexed_item: tuple[int, dict[str, object]]) -> tuple[int, int]:
+        index, item = indexed_item
+        state = opportunity_state.get(str(item.get("opportunity_id", "")), {})
+        matched = bool(state.get("matched_themes"))
+        avoided = bool(state.get("avoid_themes"))
+        if matched and not avoided:
+            rank = 0
+        elif matched and avoided:
+            rank = 1
+        elif not avoided:
+            rank = 2
+        else:
+            rank = 3
+        return (rank, index)
+
+    return [
+        item
+        for _index, item in sorted(
+            enumerate(opportunities),
+            key=sort_key,
+        )
+    ]
+
+
+def _profile_now_priority(
+    index: int,
+    item_profile: dict[str, object],
+    *,
+    has_focus: bool,
+) -> str:
+    if has_focus:
+        if item_profile.get("avoid_themes"):
+            return "P2"
+        if item_profile.get("matched_themes"):
+            return "P0" if index <= 3 else "P1"
+        return "P2"
+    return "P0" if index == 1 else "P1"
+
+
+def _profile_now_reason(item_profile: dict[str, object]) -> str:
+    parts = []
+    matched_themes = list(item_profile.get("matched_themes", []))
+    avoided_themes = list(item_profile.get("avoid_themes", []))
+    if matched_themes:
+        parts.append(f"profile_focus={_join_profile_values(matched_themes)}.")
+    if avoided_themes:
+        parts.append(
+            f"avoid_themes={_join_profile_values(avoided_themes)}; priority lowered, evidence kept."
+        )
+    return " ".join(parts)
+
+
+def _merge_evidence_aliases(items: list[dict[str, object]]) -> list[str]:
+    aliases = []
+    seen = set()
+    for item in items:
+        for alias in item.get("evidence_aliases", []):
+            text = terminal_safe(alias)
+            if not text or text in seen:
+                continue
+            seen.add(text)
+            aliases.append(text)
+    return aliases[:12]
+
+
+def _unique_profile_values(values: object) -> list[str]:
+    result = []
+    seen = set()
+    for value in values:
+        text = terminal_safe(value)
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        result.append(text)
+    return result
 
 
 def _profile_values(profile: dict[str, object], key: str) -> list[str]:

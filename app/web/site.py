@@ -213,6 +213,9 @@ def _for_you_page(site_payload: dict[str, Any]) -> str:
         "</div></section>"
         '<section class="section"><div class="shell stack">'
         '<div><h2>Фокус Проекта</h2><div id="fit" class="grid cards"></div></div>'
+        '<div><h2>Совпадения С Фокусом</h2><div id="matches" class="grid cards"></div></div>'
+        '<div><h2>Следующая Проверка</h2><div id="review" class="grid cards"></div></div>'
+        '<div><h2>Предупреждения Профиля</h2><div id="warnings" class="grid cards"></div></div>'
         '<div><h2>Сделать Сейчас</h2><div id="now" class="grid cards"></div></div>'
         '<div><h2>Кого Проверить</h2><div id="people" class="grid cards"></div></div>'
         '<div><h2>Что Забрать В Проект</h2><div id="apply" class="grid cards"></div></div>'
@@ -254,10 +257,20 @@ def _for_you_js() -> str:
 const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const list = items => `<ul>${(items || []).map(item => `<li>${esc(item)}</li>`).join('')}</ul>`;
 const card = (title, body, meta='') => `<article class="card"><h3>${esc(title)}</h3>${meta ? `<p class="meta">${esc(meta)}</p>` : ''}${body}</article>`;
+const inline = items => (items || []).length ? esc((items || []).join(', ')) : 'none';
 fetch('data/for-you.json').then(r => r.json()).then(data => {
   document.getElementById('fit').innerHTML = (data.project_fit || []).map(item =>
     card(item.title, list(item.items) + `<p>${esc(item.why || '')}</p>`)
   ).join('') || '<p class="empty">Project profile не задан.</p>';
+  document.getElementById('matches').innerHTML = (data.profile_matches || []).map(item =>
+    card(item.title, `<p>${esc(item.reason || '')}</p><p><strong>Темы:</strong> ${inline(item.matched_themes)}</p><p><strong>Evidence:</strong> ${inline(item.evidence_aliases)}</p>`, `${item.priority || 'P1'} · ${item.type || 'match'}`)
+  ).join('') || '<p class="empty">Нет совпадений с focus_themes.</p>';
+  document.getElementById('review').innerHTML = (data.recommended_next_review || []).map(item =>
+    card(item.title, `<p>${esc(item.action || '')}</p><p>${esc(item.reason || '')}</p><p><strong>Evidence:</strong> ${inline(item.evidence_aliases)}</p>`, item.priority || 'P1')
+  ).join('') || '<p class="empty">Нет следующих действий.</p>';
+  document.getElementById('warnings').innerHTML = (data.profile_warnings || []).map(item =>
+    card(item.code, `<p>${esc(item.message || '')}</p><p><strong>Темы:</strong> ${inline(item.themes)}</p><p><strong>Evidence:</strong> ${inline(item.evidence_aliases)}</p>`, item.priority || 'P1')
+  ).join('') || '<p class="empty">Нет предупреждений профиля.</p>';
   document.getElementById('now').innerHTML = (data.now || []).map(item =>
     card(item.title, list(item.actions) + `<p>${esc(item.why || '')}</p>`, item.priority || 'P1')
   ).join('') || '<p class="empty">Нет действий.</p>';

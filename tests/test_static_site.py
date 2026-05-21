@@ -183,6 +183,145 @@ def test_static_site_uses_local_project_profile(capsys) -> None:
     )
 
 
+def test_project_profile_focus_themes_create_profile_matches(capsys) -> None:
+    profile = {
+        "project_name": "Focus Pilot",
+        "project_summary": "Локальная проверка profile matching.",
+        "focus_themes": ["stock"],
+        "avoid_themes": [],
+        "next_questions": ["Какие stock aliases открыть первыми?"],
+    }
+    with (
+        temporary_db_path() as db_path,
+        temporary_site_dir() as site_dir,
+        temporary_profile_path(profile) as profile_path,
+    ):
+        run_import(FIXTURE, db_path)
+        run_classify(db_path)
+        capsys.readouterr()
+
+        run_site(
+            db_path,
+            site_dir,
+            limit=10,
+            project_profile_path=profile_path,
+        )
+        for_you = json.loads((site_dir / "data/for-you.json").read_text(encoding="utf-8"))
+        for_you_html = (site_dir / "for-you.html").read_text(encoding="utf-8")
+        for relative in (site_dir / "data").glob("*.json"):
+            json.loads(relative.read_text(encoding="utf-8"))
+
+    assert "Совпадения С Фокусом" in for_you_html
+    assert "Следующая Проверка" in for_you_html
+    assert for_you["profile_matches"]
+    assert any(
+        item["type"] == "opportunity" and item["matched_themes"] == ["stock"]
+        for item in for_you["profile_matches"]
+    )
+    assert any(
+        item["type"] == "theme" and item["matched_themes"] == ["stock"]
+        for item in for_you["profile_matches"]
+    )
+    assert 3 <= len(for_you["recommended_next_review"]) <= 7
+    assert for_you["now"][0]["priority"] == "P0"
+    assert "profile_focus=stock" in for_you["now"][0]["why"]
+    assert all(
+        alias.startswith("chat")
+        for item in for_you["profile_matches"]
+        for alias in item["evidence_aliases"]
+    )
+
+
+def test_project_profile_avoid_themes_warn_and_lower_priority(capsys) -> None:
+    profile = {
+        "project_name": "Avoid Pilot",
+        "project_summary": "Локальная проверка avoid_themes.",
+        "focus_themes": ["stock"],
+        "avoid_themes": ["stock"],
+    }
+    with (
+        temporary_db_path() as db_path,
+        temporary_site_dir() as site_dir,
+        temporary_profile_path(profile) as profile_path,
+    ):
+        run_import(FIXTURE, db_path)
+        run_classify(db_path)
+        capsys.readouterr()
+
+        run_site(
+            db_path,
+            site_dir,
+            limit=10,
+            project_profile_path=profile_path,
+        )
+        for_you = json.loads((site_dir / "data/for-you.json").read_text(encoding="utf-8"))
+
+    warning_codes = {item["code"] for item in for_you["profile_warnings"]}
+    assert "avoid_themes_detected" in warning_codes
+    assert "all_matches_only_in_avoid_themes" in warning_codes
+    assert for_you["profile_matches"]
+    assert {item["priority"] for item in for_you["profile_matches"]} == {"P2"}
+    assert for_you["now"][0]["priority"] == "P2"
+    assert for_you["profile_matches"][0]["evidence_aliases"]
+
+
+def test_empty_project_profile_keeps_static_site_flow(capsys) -> None:
+    with temporary_db_path() as db_path, temporary_site_dir() as site_dir:
+        run_import(FIXTURE, db_path)
+        run_classify(db_path)
+        capsys.readouterr()
+
+        run_site(db_path, site_dir, limit=10)
+        for_you = json.loads((site_dir / "data/for-you.json").read_text(encoding="utf-8"))
+
+    assert for_you["project_profile"]["focus_themes"] == []
+    assert for_you["profile_matches"] == []
+    assert any(
+        item["code"] == "focus_themes_empty"
+        for item in for_you["profile_warnings"]
+    )
+    assert for_you["now"]
+    assert for_you["project_fit"]
+    assert 3 <= len(for_you["recommended_next_review"]) <= 7
+
+
+def test_profile_matching_output_stays_privacy_safe(capsys) -> None:
+    profile = {
+        "project_name": "Privacy Pilot",
+        "project_summary": "Локальная проверка privacy-safe output.",
+        "focus_themes": ["stock"],
+        "avoid_themes": ["stock"],
+    }
+    with (
+        temporary_db_path() as db_path,
+        temporary_site_dir() as site_dir,
+        temporary_profile_path(profile) as profile_path,
+    ):
+        run_import(FIXTURE, db_path)
+        run_classify(db_path)
+        capsys.readouterr()
+
+        run_site(
+            db_path,
+            site_dir,
+            limit=10,
+            project_profile_path=profile_path,
+        )
+        serialized = json.dumps(
+            json.loads((site_dir / "data/for-you.json").read_text(encoding="utf-8")),
+            ensure_ascii=False,
+        )
+
+    assert "Synthetic Solutions Fixture" not in serialized
+    assert "synthetic_participant" not in serialized
+    assert "3000000000" not in serialized
+    assert "https://sellerstock.test" not in serialized
+    assert "sellerstock.test" not in serialized
+    assert "@StockPilot" not in serialized
+    assert "Не могу свести" not in serialized
+    assert "Рекомендую бот" not in serialized
+
+
 def test_project_profile_rejects_invalid_json_shape() -> None:
     with temporary_profile_path(["not", "an", "object"]) as profile_path:
         with pytest.raises(ValueError, match="JSON object"):
